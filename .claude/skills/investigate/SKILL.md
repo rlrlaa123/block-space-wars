@@ -1,0 +1,1 @@
+/home/rlrlaa123/work/block-space-wars/.claude/skills/gstack/investigate/SKILL.md
