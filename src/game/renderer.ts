@@ -706,16 +706,42 @@ export function render(
   // ── PASS 6: HUD + overlays ──
   drawAimLine(ctx, state, layout)
   drawLaunchPos(ctx, state, layout)
-  if (state.phase === 'firing') drawRecallButton(ctx, layout)
   drawHUD(ctx, state, layout, chapterName, accentColor)
-  // Speed indicator
+  // Recall button AFTER HUD so it draws on top of bottom bar
+  if (state.phase === 'firing') drawRecallButton(ctx, layout)
+  // Speed indicator (pill badge in top HUD area)
   if (timeScale > 1 && state.phase === 'firing') {
-    const label = timeScale >= 4 ? '⏩×4' : '⏩×2'
-    ctx.fillStyle = 'rgba(255, 200, 50, 0.8)'
-    ctx.font = 'bold 16px sans-serif'
-    ctx.textAlign = 'center'
+    const label = timeScale >= 4 ? '×4' : '×2'
+    const badgeW = 44
+    const badgeH = 22
+    const bx = canvasW - badgeW - 10
+    const by = 11
+    // Pill background
+    ctx.fillStyle = 'rgba(245, 166, 35, 0.2)'
+    ctx.beginPath()
+    ctx.roundRect(bx, by, badgeW, badgeH, 11)
+    ctx.fill()
+    ctx.strokeStyle = 'rgba(245, 166, 35, 0.5)'
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.roundRect(bx, by, badgeW, badgeH, 11)
+    ctx.stroke()
+    // Arrow icon
+    ctx.fillStyle = '#f5a623'
+    ctx.beginPath()
+    const ax = bx + 14
+    const ay = by + badgeH / 2
+    ctx.moveTo(ax - 5, ay - 4)
+    ctx.lineTo(ax + 3, ay)
+    ctx.lineTo(ax - 5, ay + 4)
+    ctx.closePath()
+    ctx.fill()
+    // Label
+    ctx.fillStyle = '#f5a623'
+    ctx.font = 'bold 12px monospace'
+    ctx.textAlign = 'left'
     ctx.textBaseline = 'middle'
-    ctx.fillText(label, canvasW / 2, canvasH * 0.05 + 30)
+    ctx.fillText(label, ax + 6, ay)
   }
   renderComboTexts(ctx, canvasW)
   renderConfetti(ctx)

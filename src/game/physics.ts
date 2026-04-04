@@ -67,7 +67,7 @@ function ballBrickCollision(ball: Ball, bx: number, by: number, bw: number, bh: 
 
 // ── Wall bounce ──
 
-export function wallBounce(ball: Ball, canvasW: number, _canvasH: number, launchY: number): boolean {
+export function wallBounce(ball: Ball, canvasW: number, _canvasH: number, launchY: number, topY = 0): boolean {
   const r = BALL_RADIUS
   // Left wall
   if (ball.pos.x - r <= 0) {
@@ -79,9 +79,9 @@ export function wallBounce(ball: Ball, canvasW: number, _canvasH: number, launch
     ball.pos.x = canvasW - r
     ball.vel.x = -Math.abs(ball.vel.x)
   }
-  // Top wall
-  if (ball.pos.y - r <= 0) {
-    ball.pos.y = r
+  // Top wall (clamped to game area top, not canvas top)
+  if (ball.pos.y - r <= topY) {
+    ball.pos.y = topY + r
     ball.vel.y = Math.abs(ball.vel.y)
   }
   // Bottom = ball landed
@@ -179,7 +179,7 @@ export function physicsSubstep(
     ball.pos.y += ball.vel.y * subDt
 
     // Wall bounce
-    wallBounce(ball, layout.canvasW, layout.canvasH, layout.launchY)
+    wallBounce(ball, layout.canvasW, layout.canvasH, layout.launchY, layout.gridOffsetY)
     if (ball.landed) continue
 
     // Brick collisions
