@@ -58,7 +58,7 @@ export const STORIES: ChapterStory[] = [
     epilogue: [
       { character: 'rabbit', text: '"하하하! 거북아, 수고했다.\n다음에는 더 똑똑한 수를 써야 할걸?"' },
       { character: 'turtle', text: '거북이는 빈손으로 돌아왔다.\n하지만 우주를 여행하며\n진짜 소중한 것을 깨달았다...' },
-      { character: 'none', text: '— 끝 —\n\n감사합니다!\nSPACE RABBIT TALES' },
+      { character: 'none', text: '— 끝 —\n\n감사합니다!\nBLOCK SPACE WARS\nRabbit Tales' },
     ],
   },
 ]

@@ -10,15 +10,13 @@ export const RECALL_SPEED = 1800       // px/s for ball recall
 export const SUBSTEPS = 4              // collision substeps per frame
 export const FIXED_DT = 1 / 60        // physics timestep (seconds)
 // Stage: total rows to spawn per stage. Once all rows spawned + all bricks dead = clear
+// These include initial template rows (typically 4-6)
 export const STAGE_TOTAL_ROWS: Record<number, number> = {
-  // Chapter 1: easy, fewer rows
-  0: 8,
-  // Chapter 2-3: medium
-  1: 10,
-  2: 12,
-  // Chapter 4-5: long
-  3: 14,
-  4: 16,
+  0: 6,   // Ch.1: quick intro, ~2 extra rows after template
+  1: 8,   // Ch.2: short
+  2: 10,  // Ch.3: medium
+  3: 12,  // Ch.4: longer
+  4: 14,  // Ch.5: endgame
 }
 export const MIN_AIM_ANGLE = Math.PI * 10 / 180   // 10 degrees
 export const MAX_AIM_ANGLE = Math.PI * 170 / 180  // 170 degrees

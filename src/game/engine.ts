@@ -80,6 +80,10 @@ export function createEngine(
     state.isBossStage = stage.isBoss
     state.phase = 'idle'
     state.balls = []
+    state.turnCount = 0
+    // Count initial template rows as already spawned
+    const maxRow = state.bricks.reduce((max, b) => Math.max(max, b.row), 0)
+    state.rowsSpawned = maxRow + 1
     state.clearTimer = 0
     state.chapterClearTimer = 0
     gameOverAlpha = 0

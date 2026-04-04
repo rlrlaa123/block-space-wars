@@ -107,13 +107,13 @@ export function TitleScreen({ onStart, onChapterSelect, hasProgress }: Props) {
       ctx.font = 'bold 28px monospace'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
-      ctx.fillText('SPACE RABBIT', cx, h * 0.18)
-      ctx.fillText('TALES', cx, h * 0.18 + 36)
+      ctx.fillText('BLOCK SPACE', cx, h * 0.18)
+      ctx.fillText('WARS', cx, h * 0.18 + 36)
 
       // Subtitle
-      ctx.font = '14px sans-serif'
+      ctx.font = '16px sans-serif'
       ctx.fillStyle = '#4ecdc4'
-      ctx.fillText('토끼전 in Space', cx, h * 0.18 + 64)
+      ctx.fillText('Rabbit Tales', cx, h * 0.18 + 68)
 
       ctx.restore()
 
