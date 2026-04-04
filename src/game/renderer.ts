@@ -245,12 +245,35 @@ function drawHUD(ctx: CanvasRenderingContext2D, state: GameState, layout: Layout
   ctx.textBaseline = 'middle'
   ctx.fillText(`Ch.${state.currentChapter + 1} - ${state.currentStage + 1}`, w / 2, 22)
 
-  // Ball count (bottom-left, amber like brick-blitz)
+  // ── Bottom HUD bar ──
+  const bottomBarY = layout.launchY + 14
+  const bottomBarH = layout.canvasH - bottomBarY
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.35)'
+  ctx.fillRect(0, bottomBarY, w, bottomBarH)
+  // Separator line
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)'
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.moveTo(0, bottomBarY)
+  ctx.lineTo(w, bottomBarY)
+  ctx.stroke()
+
+  // Ball count (bottom-left, amber)
+  const bottomMid = bottomBarY + bottomBarH / 2
   ctx.fillStyle = '#f5a623'
-  ctx.font = 'bold 14px sans-serif'
+  ctx.font = 'bold 13px monospace'
   ctx.textAlign = 'left'
   ctx.textBaseline = 'middle'
-  ctx.fillText(`x${state.ballCount}`, 14, layout.launchY + 25)
+  // Ball icon (small circle)
+  ctx.beginPath()
+  ctx.arc(16, bottomMid, 5, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.fillStyle = '#fff'
+  ctx.beginPath()
+  ctx.arc(16, bottomMid, 4, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.fillStyle = '#f5a623'
+  ctx.fillText(`×${state.ballCount}`, 26, bottomMid)
 
   // Progress bar (below top bar)
   if (state.totalBricksSpawned > 0) {
@@ -292,33 +315,40 @@ function drawLaunchPos(ctx: CanvasRenderingContext2D, state: GameState, layout: 
   ctx.fill()
 }
 
-// ── Recall button (only during firing) ──
+// ── Recall button (only during firing, sits in bottom HUD bar) ──
 
 function drawRecallButton(ctx: CanvasRenderingContext2D, layout: LayoutInfo) {
-  const btnW = 100
-  const btnH = 36
-  const x = (layout.canvasW - btnW) / 2
-  const y = layout.canvasH - btnH - 12
+  const bottomBarY = layout.launchY + 14
+  const bottomBarH = layout.canvasH - bottomBarY
+  const bottomMid = bottomBarY + bottomBarH / 2
 
-  // Button background
-  ctx.fillStyle = 'rgba(140, 160, 220, 0.25)'
+  const btnW = 80
+  const btnH = 30
+  const x = layout.canvasW - btnW - 14
+  const y = bottomMid - btnH / 2
+
+  // Pill background with subtle gradient
+  const grad = ctx.createLinearGradient(x, y, x, y + btnH)
+  grad.addColorStop(0, 'rgba(78, 205, 196, 0.2)')
+  grad.addColorStop(1, 'rgba(78, 205, 196, 0.08)')
+  ctx.fillStyle = grad
   ctx.beginPath()
-  ctx.roundRect(x, y, btnW, btnH, 8)
+  ctx.roundRect(x, y, btnW, btnH, 15)
   ctx.fill()
 
   // Border
-  ctx.strokeStyle = 'rgba(140, 160, 220, 0.5)'
+  ctx.strokeStyle = 'rgba(78, 205, 196, 0.4)'
   ctx.lineWidth = 1
   ctx.beginPath()
-  ctx.roundRect(x, y, btnW, btnH, 8)
+  ctx.roundRect(x, y, btnW, btnH, 15)
   ctx.stroke()
 
-  // Text
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.8)'
-  ctx.font = 'bold 14px sans-serif'
+  // Arrow icon + text
+  ctx.fillStyle = 'rgba(78, 205, 196, 0.9)'
+  ctx.font = 'bold 12px sans-serif'
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  ctx.fillText('⏬ 회수', x + btnW / 2, y + btnH / 2)
+  ctx.fillText('▼ 회수', x + btnW / 2, y + btnH / 2)
 }
 
 // ── Tutorial overlay ──
