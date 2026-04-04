@@ -75,6 +75,7 @@ export function generateStage(chapter: number, stage: number): Stage {
       col: emptyCol,
       type: 'ball',
       collected: false,
+      bonusAmount: 1 + Math.floor(Math.random() * 2), // initial stages give +1-2
     })
   }
 

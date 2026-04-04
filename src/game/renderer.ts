@@ -165,10 +165,10 @@ function drawItem(ctx: CanvasRenderingContext2D, item: Item, layout: LayoutInfo)
       ctx.fillStyle = '#4caf50'
       ctx.fill()
       ctx.fillStyle = '#fff'
-      ctx.font = 'bold 12px monospace'
+      ctx.font = 'bold 10px monospace'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
-      ctx.fillText('+', x, y)
+      ctx.fillText(`+${item.bonusAmount ?? 1}`, x, y)
       break
     case 'bomb':
       ctx.fillStyle = '#e74c3c'

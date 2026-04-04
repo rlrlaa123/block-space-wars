@@ -5,7 +5,7 @@ import { render } from './renderer'
 import { setupInput } from './input'
 import {
   createInitialState, startAiming, updateAim, fire,
-  updateFiring, endTurn, advanceStage,
+  updateFiring, endTurn, advanceStage, recallBalls,
 } from './state'
 import {
   spawnBrickBreak, spawnHitSpark, spawnHitRing,
@@ -108,12 +108,18 @@ export function createEngine(
   }
   window.addEventListener('resize', resize)
 
-  // Input
+  // Input — tap below launch line during firing = recall balls
   const cleanupInput = setupInput(
     canvas,
     () => state.launchX,
     () => layout.launchY,
-    (angle) => startAiming(state, angle),
+    (angle) => {
+      if (state.phase === 'firing') {
+        recallBalls(state, layout.launchY)
+        return
+      }
+      startAiming(state, angle)
+    },
     (angle) => updateAim(state, angle),
     () => { fire(state); firingElapsed = 0 },
   )
@@ -231,6 +237,28 @@ export function createEngine(
           break
         }
       }
+
+      // Item collection on ball contact (balls pass through items)
+      for (const item of state.items) {
+        if (item.collected) continue
+        const ix = layout.cellSize / 2 + item.col * (layout.cellSize + 2) + 2
+        const iy = layout.gridOffsetY + item.row * (layout.cellSize + 2) + layout.cellSize / 2
+        const itemRadius = layout.cellSize * 0.3
+        for (const ball of state.balls) {
+          if (ball.landed || ball.pos.y < -900) continue
+          const dx = ball.pos.x - ix
+          const dy = ball.pos.y - iy
+          if (dx * dx + dy * dy < (itemRadius + BALL_RADIUS) * (itemRadius + BALL_RADIUS)) {
+            item.collected = true
+            const bonus = item.bonusAmount ?? 1
+            state.ballCount = Math.min(state.ballCount + bonus, MAX_BALLS)
+            spawnCollectBurst(ix, iy, '#4caf50')
+            hapticLight()
+            break
+          }
+        }
+      }
+      state.items = state.items.filter(i => !i.collected)
 
       // Update trails
       for (const ball of state.balls) {

@@ -1,10 +1,12 @@
 import type { ChapterConfig } from './types'
 
 // ── Physics ──
-export const BALL_SPEED = 600          // pixels/sec
-export const BALL_RADIUS = 6           // pixels
-export const MAX_BALLS = 50
-export const BALL_STAGGER_MS = 50      // ms between each ball launch
+export const BALL_SPEED = 900          // pixels/sec (brick-blitz: 900)
+export const BALL_RADIUS = 7           // pixels (brick-blitz: 7)
+export const MAX_BALLS = 200
+export const INITIAL_BALL_COUNT = 3    // start small, grow via items
+export const BALL_STAGGER_MS = 35      // ms between each ball (brick-blitz: 35)
+export const RECALL_SPEED = 1800       // px/s for ball recall
 export const SUBSTEPS = 4              // collision substeps per frame
 export const FIXED_DT = 1 / 60        // physics timestep (seconds)
 export const TURN_TIMEOUT_S = 10       // force balls down after 10s

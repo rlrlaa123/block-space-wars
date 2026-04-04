@@ -1,9 +1,10 @@
 import type { GameState, Ball, Brick, Item, GamePhase } from './types'
 import {
   BALL_SPEED, BALL_RADIUS, BALL_STAGGER_MS, MAX_BALLS,
-  TURN_TIMEOUT_S, STAGE_CLEAR_DELAY, CHAPTER_CLEAR_DELAY,
-  STAGES_PER_CHAPTER, TRAIL_LENGTH,
+  TURN_TIMEOUT_S, STAGES_PER_CHAPTER, INITIAL_BALL_COUNT,
+  RECALL_SPEED, GRID_COLS, GRID_ROWS,
 } from './constants'
+import { CHAPTERS } from './constants'
 
 export function createInitialState(): GameState {
   return {
@@ -12,8 +13,8 @@ export function createInitialState(): GameState {
     bricks: [],
     items: [],
     particles: [],
-    ballCount: 3,
-    launchX: 0, // set when canvas initializes
+    ballCount: INITIAL_BALL_COUNT,
+    launchX: 0,
     aimAngle: Math.PI / 2,
     turnTimer: 0,
     currentChapter: 0,
@@ -45,18 +46,16 @@ export function fire(state: GameState) {
   state.firstLandedX = null
   state.showTutorial = false
 
-  // Create balls with staggered launch
   const count = Math.min(state.ballCount, MAX_BALLS)
   state.balls = []
   for (let i = 0; i < count; i++) {
-    const ball: Ball = {
-      pos: { x: state.launchX, y: -999 }, // placed off-screen, spawned over time
+    state.balls.push({
+      pos: { x: state.launchX, y: -999 },
       vel: { x: 0, y: 0 },
       radius: BALL_RADIUS,
       landed: false,
       trail: [],
-    }
-    state.balls.push(ball)
+    })
   }
 }
 
@@ -65,6 +64,22 @@ export function spawnBall(ball: Ball, launchX: number, launchY: number, angle: n
   ball.pos.y = launchY - BALL_RADIUS
   ball.vel.x = Math.cos(angle) * BALL_SPEED
   ball.vel.y = -Math.sin(angle) * BALL_SPEED
+}
+
+// Recall: redirect all active balls downward at high speed
+export function recallBalls(state: GameState, launchY: number) {
+  if (state.phase !== 'firing') return
+  for (const ball of state.balls) {
+    if (ball.landed || ball.pos.y < -900) continue
+    // Aim directly down toward launch line
+    const dx = state.launchX - ball.pos.x
+    const dy = launchY - ball.pos.y
+    const dist = Math.sqrt(dx * dx + dy * dy)
+    if (dist > 0) {
+      ball.vel.x = (dx / dist) * RECALL_SPEED
+      ball.vel.y = (dy / dist) * RECALL_SPEED
+    }
+  }
 }
 
 export function updateFiring(state: GameState, dt: number, launchY: number): {
@@ -84,7 +99,7 @@ export function updateFiring(state: GameState, dt: number, launchY: number): {
     }
   }
 
-  // Track first landed ball
+  // Track first landed ball (sets next turn launch position)
   for (const ball of state.balls) {
     if (ball.landed && state.firstLandedX === null) {
       state.firstLandedX = ball.pos.x
@@ -95,51 +110,95 @@ export function updateFiring(state: GameState, dt: number, launchY: number): {
   for (const ball of state.balls) {
     if (!ball.landed && ball.pos.y > -900) {
       ball.trail.push({ x: ball.pos.x, y: ball.pos.y })
-      if (ball.trail.length > TRAIL_LENGTH) ball.trail.shift()
+      if (ball.trail.length > 8) ball.trail.shift()
     }
   }
 
-  // Check timeout
+  // Timeout
   if (state.turnTimer >= TURN_TIMEOUT_S) {
-    // Force all balls down
     for (const ball of state.balls) {
       if (!ball.landed) {
         ball.landed = true
-        if (state.firstLandedX === null) {
-          state.firstLandedX = ball.pos.x
-        }
+        if (state.firstLandedX === null) state.firstLandedX = ball.pos.x
       }
     }
     return { phaseDone: true, timeout: true }
   }
 
-  // Check if all spawned balls have landed
+  // All done?
   const allSpawned = state.balls.every(b => b.pos.y > -900)
   const allLanded = state.balls.every(b => b.landed)
-
-  if (allSpawned && allLanded) {
-    return { phaseDone: true, timeout: false }
-  }
+  if (allSpawned && allLanded) return { phaseDone: true, timeout: false }
 
   return { phaseDone: false, timeout: false }
 }
 
+// ── Generate a new brick row (called each turn) ──
+
+export function generateNewRow(state: GameState): { bricks: Brick[], items: Item[] } {
+  const chapter = CHAPTERS[state.currentChapter]
+  const stageProgress = state.currentStage / STAGES_PER_CHAPTER
+  const bricks: Brick[] = []
+  const items: Item[] = []
+
+  // How many bricks in this row? 4-6 based on chapter
+  const brickCount = Math.min(6, 4 + Math.floor(state.currentChapter / 2))
+
+  // Shuffle column positions
+  const cols = Array.from({ length: GRID_COLS }, (_, i) => i)
+  for (let i = cols.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [cols[i], cols[j]] = [cols[j], cols[i]]
+  }
+  const selectedCols = cols.slice(0, brickCount)
+
+  for (const col of selectedCols) {
+    // HP scales with ball count (brick-blitz style)
+    const scale = 0.4 + (state.currentChapter * 10 + state.currentStage) * 0.06
+    const baseHp = Math.ceil(state.ballCount * scale)
+    const variance = Math.floor(baseHp * 0.3 * (Math.random() * 2 - 1))
+    const hp = Math.max(1, baseHp + variance)
+
+    // Special brick type chance
+    let type: 'basic' | 'gravity-well' | 'shield' | 'splitter' = 'basic'
+    if (Math.random() < chapter.specialBrickRate && chapter.specialBrickTypes.length > 0) {
+      type = chapter.specialBrickTypes[Math.floor(Math.random() * chapter.specialBrickTypes.length)] as typeof type
+    }
+
+    bricks.push({
+      row: 0, col, hp, maxHp: hp,
+      type, width: 1, height: 1,
+      flashTimer: 0, dead: false,
+      shieldAngle: type === 'shield' ? Math.random() * Math.PI * 2 : undefined,
+    })
+  }
+
+  // Extra ball item in a free column (brick-blitz style: 5-10% of ball count)
+  const freeCols = cols.filter(c => !selectedCols.includes(c))
+  if (freeCols.length > 0 && Math.random() < 0.5) {
+    const col = freeCols[Math.floor(Math.random() * freeCols.length)]
+    const pct = 0.05 + Math.random() * 0.10
+    const bonus = Math.max(3, Math.round(state.ballCount * pct))
+    items.push({
+      row: 0, col,
+      type: 'ball',
+      collected: false,
+      bonusAmount: bonus,
+    })
+  }
+
+  return { bricks, items }
+}
+
+// ── End turn: descend bricks, spawn new row, check game over ──
+
 export function endTurn(state: GameState): GamePhase {
-  // Update launch position to first landed ball
+  // Update launch position
   if (state.firstLandedX !== null) {
     state.launchX = state.firstLandedX
   }
 
-  // Collect items that balls passed through (items on rows where balls were active)
-  for (const item of state.items) {
-    if (item.collected) continue
-    // Items are collected when a ball's landing x is near the item's column
-    // Simplified: collect all items that are at or below the brick area
-    item.collected = true
-    applyItem(state, item)
-  }
-
-  // Check stage clear
+  // Check stage clear (all bricks dead)
   const aliveBricks = state.bricks.filter(b => !b.dead)
   if (aliveBricks.length === 0) {
     state.phase = 'stage-clear'
@@ -147,51 +206,29 @@ export function endTurn(state: GameState): GamePhase {
     return 'stage-clear'
   }
 
-  // Move bricks down one row
-  for (const brick of aliveBricks) {
-    brick.row++
-  }
-  // Move items down
+  // Descend all bricks and items by 1 row
+  for (const brick of aliveBricks) brick.row++
   for (const item of state.items) {
     if (!item.collected) item.row++
   }
 
-  // Check game over: any brick at row >= GRID_ROWS
-  const gameOver = aliveBricks.some(b => b.row >= 10)
-  if (gameOver) {
+  // Check game over: any brick at bottom
+  if (aliveBricks.some(b => b.row >= GRID_ROWS)) {
     state.phase = 'game-over'
     return 'game-over'
   }
 
-  // Collect items at bottom row
-  for (const item of state.items) {
-    if (!item.collected && item.row >= 10) {
-      item.collected = true
-      applyItem(state, item)
-    }
-  }
-  state.items = state.items.filter(i => !i.collected && i.row < 11)
+  // Remove items that went below grid
+  state.items = state.items.filter(i => !i.collected && i.row < GRID_ROWS)
+
+  // Spawn new row at top
+  const newRow = generateNewRow(state)
+  state.bricks.push(...newRow.bricks)
+  state.items.push(...newRow.items)
 
   state.phase = 'idle'
   state.balls = []
   return 'idle'
-}
-
-function applyItem(state: GameState, item: Item) {
-  switch (item.type) {
-    case 'ball':
-      state.ballCount = Math.min(state.ballCount + 1, MAX_BALLS)
-      break
-    case 'bomb':
-      // Destroy nearby bricks (handled in engine)
-      break
-    case 'power-shot':
-      // Next turn balls pierce through (handled in engine)
-      break
-    case 'wide-shot':
-      // Next turn balls spread ±15° (handled in engine)
-      break
-  }
 }
 
 export function advanceStage(state: GameState): 'next-stage' | 'chapter-clear' | 'game-complete' {
@@ -199,9 +236,7 @@ export function advanceStage(state: GameState): 'next-stage' | 'chapter-clear' |
   if (state.currentStage >= STAGES_PER_CHAPTER) {
     state.currentStage = 0
     state.currentChapter++
-    if (state.currentChapter >= 5) {
-      return 'game-complete'
-    }
+    if (state.currentChapter >= 5) return 'game-complete'
     return 'chapter-clear'
   }
   return 'next-stage'

@@ -57,6 +57,7 @@ export interface Item {
   col: number
   type: ItemType
   collected: boolean
+  bonusAmount?: number  // for ball items: how many balls to add
 }
 
 export interface Particle {
