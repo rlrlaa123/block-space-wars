@@ -144,7 +144,7 @@ export function TitleScreen({ onStart, onChapterSelect, hasProgress }: Props) {
           시작하기
         </button>
         {hasProgress && (
-          <button onClick={onChapterSelect} style={{ ...btnStyle, background: 'transparent', border: '2px solid #4ecdc4' }}>
+          <button onClick={onChapterSelect} style={{ ...btnStyle, background: 'transparent', border: '2px solid #4ecdc4', color: '#4ecdc4' }}>
             챕터 선택
           </button>
         )}
