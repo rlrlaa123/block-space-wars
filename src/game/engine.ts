@@ -17,7 +17,7 @@ import { createScreenShake, triggerShake, updateShake } from '../effects/screen-
 import { hapticLight, hapticMedium, hapticHeavy } from '../utils/haptic'
 import { generateStage } from '../stages/generator'
 import {
-  CHAPTERS, FIXED_DT, STAGE_CLEAR_DELAY, GAME_OVER_FADE_DURATION,
+  CHAPTERS, FIXED_DT, GAME_OVER_FADE_DURATION,
   BALL_RADIUS, BALL_SPEED, MAX_BALLS,
 } from './constants'
 
@@ -26,6 +26,8 @@ export interface EngineCallbacks {
   onGameOver: () => void
   onGameComplete: () => void
   onStageLoaded: (chapter: number, stage: number) => void
+  onRetry: () => void
+  onMenu: () => void
 }
 
 export function createEngine(
@@ -129,6 +131,69 @@ export function createEngine(
       if (state.phase === 'firing') recallBalls(state, layout.launchY)
     },
   )
+
+  // Canvas click handler for modal buttons (game-over, stage-clear)
+  function onCanvasClick(e: MouseEvent | TouchEvent) {
+    const rect = canvas.getBoundingClientRect()
+    const clientX = 'touches' in e ? e.changedTouches[0].clientX : e.clientX
+    const clientY = 'touches' in e ? e.changedTouches[0].clientY : e.clientY
+    const x = clientX - rect.left
+    const y = clientY - rect.top
+    const w = rect.width
+    const h = rect.height
+
+    if (state.phase === 'game-over' && gameOverAlpha > 0.8) {
+      const modalW = w - 40
+      const modalH = 260
+      const modalX = 20
+      const modalY = (h - modalH) / 2
+      const btnW = modalW - 40
+      const btnH = 44
+      const btnX = modalX + 20
+      const retryY = modalY + modalH - 120
+      const menuY = modalY + modalH - 65
+
+      // Retry button
+      if (x >= btnX && x <= btnX + btnW && y >= retryY && y <= retryY + btnH) {
+        e.preventDefault()
+        callbacks.onRetry()
+        return
+      }
+      // Menu button
+      if (x >= btnX && x <= btnX + btnW && y >= menuY && y <= menuY + btnH) {
+        e.preventDefault()
+        callbacks.onMenu()
+        return
+      }
+    }
+
+    if (state.phase === 'stage-clear' && state.clearTimer > 0.3) {
+      // "Next stage" button
+      const btnW2 = 240
+      const btnH2 = 50
+      const btnX2 = (w - btnW2) / 2
+      const btnY2 = h * 0.6
+      if (x >= btnX2 && x <= btnX2 + btnW2 && y >= btnY2 && y <= btnY2 + btnH2) {
+        e.preventDefault()
+        // Advance stage manually
+        const result = advanceStage(state)
+        if (result === 'game-complete') {
+          callbacks.onGameComplete()
+        } else if (result === 'chapter-clear') {
+          callbacks.onChapterClear(state.currentChapter - 1)
+        } else {
+          loadStage()
+        }
+        return
+      }
+    }
+  }
+  canvas.addEventListener('click', onCanvasClick)
+  canvas.addEventListener('touchend', (e) => {
+    if (state.phase === 'game-over' || state.phase === 'stage-clear') {
+      onCanvasClick(e)
+    }
+  }, { passive: false })
 
   // Game loop
   function loop(timestamp: number) {
@@ -379,18 +444,7 @@ export function createEngine(
       state.clearTimer += dt
       // Spawn confetti on first frame
       if (state.clearTimer < dt * 2) spawnConfetti(layout.canvasW)
-      if (state.clearTimer >= STAGE_CLEAR_DELAY) {
-        const result = advanceStage(state)
-        if (result === 'game-complete') {
-          callbacks.onGameComplete()
-        } else if (result === 'chapter-clear') {
-          state.chapterClearTimer = 0
-          state.phase = 'idle'
-          callbacks.onChapterClear(state.currentChapter - 1)
-        } else {
-          loadStage()
-        }
-      }
+      // Wait for user to click "다음 스테이지" button (handled in onCanvasClick)
     }
 
     if (state.phase === 'game-over') {
@@ -404,6 +458,7 @@ export function createEngine(
     destroy() {
       running = false
       window.removeEventListener('resize', resize)
+      canvas.removeEventListener('click', onCanvasClick)
       cleanupInput()
     },
     getState() { return state },

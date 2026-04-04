@@ -229,28 +229,57 @@ function drawAimLine(ctx: CanvasRenderingContext2D, state: GameState, layout: La
   ctx.setLineDash([])
 }
 
-// ── HUD ──
+// ── HUD (brick-blitz style) ──
 
-function drawHUD(ctx: CanvasRenderingContext2D, state: GameState, layout: LayoutInfo, chapterName: string) {
-  const hudH = layout.canvasH * 0.05
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.4)'
-  ctx.fillRect(0, 0, layout.canvasW, hudH)
+function drawHUD(ctx: CanvasRenderingContext2D, state: GameState, layout: LayoutInfo, _chapterName: string, accentColor: string) {
+  const w = layout.canvasW
+
+  // Top bar background
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'
+  ctx.fillRect(0, 0, w, 44)
+
+  // Chapter + Stage label (centered)
   ctx.fillStyle = '#ffffff'
-  ctx.font = '12px monospace'
-  ctx.textBaseline = 'middle'
-  const y = hudH / 2
-  ctx.textAlign = 'left'
-  ctx.fillText(`${chapterName} ${state.currentStage + 1}/10`, 8, y)
-  // Destruction progress
+  ctx.font = 'bold 16px sans-serif'
   ctx.textAlign = 'center'
-  ctx.fillStyle = 'rgba(255,255,255,0.5)'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(`Ch.${state.currentChapter + 1} - ${state.currentStage + 1}`, w / 2, 22)
+
+  // Ball count (bottom-left, amber like brick-blitz)
+  ctx.fillStyle = '#f5a623'
+  ctx.font = 'bold 14px sans-serif'
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(`x${state.ballCount}`, 14, layout.launchY + 25)
+
+  // Progress bar (below top bar)
   if (state.totalBricksSpawned > 0) {
-    const pct = Math.round((state.bricksDestroyed / state.totalBricksSpawned) * 100)
-    ctx.fillText(`${pct}%`, layout.canvasW / 2, y)
+    const barX = 60
+    const barY = 56
+    const barW = w - 120
+    const barH = 6
+    const pct = Math.min(1, state.bricksDestroyed / state.totalBricksSpawned)
+
+    // Background
+    ctx.fillStyle = 'rgba(255,255,255,0.15)'
+    ctx.beginPath()
+    ctx.roundRect(barX, barY, barW, barH, 3)
+    ctx.fill()
+
+    // Fill
+    if (pct > 0) {
+      ctx.fillStyle = accentColor
+      ctx.beginPath()
+      ctx.roundRect(barX, barY, barW * pct, barH, 3)
+      ctx.fill()
+    }
+
+    // Percentage text
+    ctx.fillStyle = 'rgba(255,255,255,0.6)'
+    ctx.font = '11px sans-serif'
+    ctx.textAlign = 'right'
+    ctx.fillText(`${Math.round(pct * 100)}%`, barX - 6, barY + 3)
   }
-  ctx.fillStyle = '#ffffff'
-  ctx.textAlign = 'right'
-  ctx.fillText(`●×${state.ballCount}`, layout.canvasW - 8, y)
 }
 
 // ── Launch position ──
@@ -309,36 +338,155 @@ function drawTutorial(ctx: CanvasRenderingContext2D, layout: LayoutInfo, time: n
 
 // ── Stage / Chapter clear ──
 
-function drawStageClear(ctx: CanvasRenderingContext2D, layout: LayoutInfo, timer: number) {
+function drawStageClear(ctx: CanvasRenderingContext2D, layout: LayoutInfo, timer: number, accentColor: string, state: GameState) {
+  const w = layout.canvasW
+  const h = layout.canvasH
+  const alpha = Math.min(1, timer * 3)
+
+  // Overlay
+  ctx.fillStyle = `rgba(0, 0, 0, ${0.4 * alpha})`
+  ctx.fillRect(0, 0, w, h)
+
+  ctx.globalAlpha = alpha
+
+  // Title
   ctx.fillStyle = '#ffffff'
-  ctx.font = 'bold 36px monospace'
+  ctx.font = 'bold 32px sans-serif'
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  ctx.globalAlpha = Math.min(1, timer * 3)
-  ctx.fillText('CLEAR!', layout.canvasW / 2, layout.canvasH / 2)
+  ctx.fillText('★ Stage Clear! ★', w / 2, h * 0.3)
+
+  // Chapter info
+  ctx.fillStyle = accentColor
+  ctx.font = 'bold 18px sans-serif'
+  ctx.fillText(`Ch.${state.currentChapter + 1} - Stage ${state.currentStage + 1}`, w / 2, h * 0.3 + 45)
+
+  // Ball count
+  ctx.fillStyle = 'rgba(255,255,255,0.6)'
+  ctx.font = '13px sans-serif'
+  ctx.fillText(`잔여 공: ${state.ballCount}개`, w / 2, h * 0.3 + 80)
+
+  // "Next" button (pill)
+  const btnW = 240
+  const btnH = 50
+  const btnX = (w - btnW) / 2
+  const btnY = h * 0.6
+
+  ctx.fillStyle = 'rgba(255,255,255,0.2)'
+  ctx.beginPath()
+  ctx.roundRect(btnX, btnY, btnW, btnH, 25)
+  ctx.fill()
+  ctx.strokeStyle = 'rgba(255,255,255,0.4)'
+  ctx.lineWidth = 1.5
+  ctx.beginPath()
+  ctx.roundRect(btnX, btnY, btnW, btnH, 25)
+  ctx.stroke()
+
+  ctx.fillStyle = '#ffffff'
+  ctx.font = 'bold 18px sans-serif'
+  ctx.fillText('다음 스테이지', w / 2, btnY + btnH / 2)
+
   ctx.globalAlpha = 1
 }
 
 function drawChapterClear(ctx: CanvasRenderingContext2D, layout: LayoutInfo, timer: number) {
+  const w = layout.canvasW
+  const h = layout.canvasH
+  const alpha = Math.min(1, timer * 2)
+
+  ctx.fillStyle = `rgba(0, 0, 0, ${0.5 * alpha})`
+  ctx.fillRect(0, 0, w, h)
+
+  ctx.globalAlpha = alpha
   ctx.fillStyle = '#ffd700'
-  ctx.font = 'bold 32px monospace'
+  ctx.font = 'bold 36px sans-serif'
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  ctx.globalAlpha = Math.min(1, timer * 2)
-  ctx.fillText('CHAPTER', layout.canvasW / 2, layout.canvasH / 2 - 24)
-  ctx.fillText('COMPLETE', layout.canvasW / 2, layout.canvasH / 2 + 24)
+  ctx.fillText('CHAPTER', w / 2, h / 2 - 24)
+  ctx.fillText('COMPLETE', w / 2, h / 2 + 24)
   ctx.globalAlpha = 1
 }
 
-function drawGameOver(ctx: CanvasRenderingContext2D, layout: LayoutInfo, alpha: number) {
-  ctx.fillStyle = `rgba(0, 0, 0, ${0.7 * alpha})`
-  ctx.fillRect(0, 0, layout.canvasW, layout.canvasH)
+function drawGameOver(ctx: CanvasRenderingContext2D, layout: LayoutInfo, alpha: number, state: GameState, accentColor: string) {
+  const w = layout.canvasW
+  const h = layout.canvasH
+
+  // Dark overlay
+  ctx.fillStyle = `rgba(0, 0, 0, ${0.55 * alpha})`
+  ctx.fillRect(0, 0, w, h)
+
   ctx.globalAlpha = alpha
-  ctx.fillStyle = '#ff4444'
-  ctx.font = 'bold 40px monospace'
+
+  // Modal
+  const modalW = w - 40
+  const modalH = 260
+  const modalX = 20
+  const modalY = (h - modalH) / 2
+
+  ctx.fillStyle = '#1a2a3a'
+  ctx.beginPath()
+  ctx.roundRect(modalX, modalY, modalW, modalH, 16)
+  ctx.fill()
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)'
+  ctx.lineWidth = 1.5
+  ctx.beginPath()
+  ctx.roundRect(modalX, modalY, modalW, modalH, 16)
+  ctx.stroke()
+
+  // Title
+  ctx.fillStyle = '#ffffff'
+  ctx.font = 'bold 24px sans-serif'
   ctx.textAlign = 'center'
+  ctx.textBaseline = 'top'
+  ctx.fillText('게임 오버', w / 2, modalY + 28)
+
+  // Level info
+  ctx.fillStyle = 'rgba(255,255,255,0.7)'
+  ctx.font = '14px sans-serif'
+  ctx.fillText(`Ch.${state.currentChapter + 1} - Stage ${state.currentStage + 1}`, w / 2, modalY + 68)
+
+  // Flavor text
+  ctx.fillStyle = 'rgba(255,255,255,0.5)'
+  ctx.font = '12px sans-serif'
+  ctx.fillText('블록이 맨 아래 줄에 도달했습니다.', w / 2, modalY + 92)
+
+  // Retry button (pill with accent color)
+  const btnW = modalW - 40
+  const btnH = 44
+  const btnX = modalX + 20
+  const retryY = modalY + modalH - 120
+
+  // Parse accent color for rgba
+  const r = parseInt(accentColor.slice(1, 3), 16)
+  const g = parseInt(accentColor.slice(3, 5), 16)
+  const b = parseInt(accentColor.slice(5, 7), 16)
+
+  ctx.fillStyle = `rgba(${r},${g},${b},0.3)`
+  ctx.beginPath()
+  ctx.roundRect(btnX, retryY, btnW, btnH, 22)
+  ctx.fill()
+  ctx.strokeStyle = accentColor
+  ctx.lineWidth = 1.5
+  ctx.beginPath()
+  ctx.roundRect(btnX, retryY, btnW, btnH, 22)
+  ctx.stroke()
+
+  ctx.fillStyle = '#ffffff'
+  ctx.font = 'bold 15px sans-serif'
   ctx.textBaseline = 'middle'
-  ctx.fillText('GAME OVER', layout.canvasW / 2, layout.canvasH / 2)
+  ctx.fillText('다시 도전', w / 2, retryY + btnH / 2)
+
+  // Menu button
+  const menuY = modalY + modalH - 65
+  ctx.fillStyle = 'rgba(255,255,255,0.12)'
+  ctx.beginPath()
+  ctx.roundRect(btnX, menuY, btnW, btnH, 22)
+  ctx.fill()
+
+  ctx.fillStyle = 'rgba(255,255,255,0.7)'
+  ctx.font = '14px sans-serif'
+  ctx.fillText('스테이지 선택', w / 2, menuY + btnH / 2)
+
   ctx.globalAlpha = 1
 }
 
@@ -457,7 +605,7 @@ export function render(
   drawAimLine(ctx, state, layout)
   drawLaunchPos(ctx, state, layout)
   if (state.phase === 'firing') drawRecallButton(ctx, layout)
-  drawHUD(ctx, state, layout, chapterName)
+  drawHUD(ctx, state, layout, chapterName, accentColor)
   // Speed indicator
   if (timeScale > 1 && state.phase === 'firing') {
     const label = timeScale >= 4 ? '⏩×4' : '⏩×2'
@@ -474,9 +622,9 @@ export function render(
 
   // Overlays (not affected by shake)
   if (state.showTutorial && state.phase === 'idle') drawTutorial(ctx, layout, time)
-  if (state.phase === 'stage-clear') drawStageClear(ctx, layout, state.clearTimer)
+  if (state.phase === 'stage-clear') drawStageClear(ctx, layout, state.clearTimer, accentColor, state)
   if (state.chapterClearTimer > 0) drawChapterClear(ctx, layout, state.chapterClearTimer)
-  if (state.phase === 'game-over') drawGameOver(ctx, layout, gameOverAlpha)
+  if (state.phase === 'game-over') drawGameOver(ctx, layout, gameOverAlpha, state, accentColor)
 }
 
 // ── Util ──

@@ -6,7 +6,7 @@ import { createEngine } from './game/engine'
 import { TitleScreen } from './ui/TitleScreen'
 import { ChapterSelect } from './ui/ChapterSelect'
 import { Cutscene } from './ui/Cutscene'
-import { GameOverScreen } from './ui/GameOverScreen'
+// GameOverScreen removed - now rendered on Canvas
 
 // localStorage helpers
 const SAVE_KEY = 'bsw_progress'
@@ -82,7 +82,7 @@ export default function App() {
         setScreen('cutscene-epilogue')
       },
       onGameOver() {
-        setScreen('game-over')
+        // Game over is now rendered on Canvas, no screen change needed
       },
       onGameComplete() {
         saveProgress(TOTAL_CHAPTERS - 1, 9)
@@ -91,6 +91,12 @@ export default function App() {
         setCutsceneChapter(TOTAL_CHAPTERS - 1)
         setCutsceneType('epilogue')
         setScreen('cutscene-epilogue')
+      },
+      onRetry() {
+        engineRef.current?.retry()
+      },
+      onMenu() {
+        setScreen('chapter-select')
       },
       onStageLoaded(chapter, stage) {
         chapterRef.current = chapter
@@ -148,22 +154,13 @@ export default function App() {
     )
   }
 
-  // Game screen + game-over overlay (same canvas, no remount)
+  // Game screen (game-over is now rendered on Canvas, not React overlay)
   return (
     <div style={{ position: 'relative', width: '100%', height: '100vh', background: '#000', overflow: 'hidden' }}>
       <canvas
         ref={canvasRef}
         style={{ display: 'block', margin: '0 auto', touchAction: 'none' }}
       />
-      {screen === 'game-over' && (
-        <GameOverScreen
-          onRetry={() => {
-            engineRef.current?.retry()
-            setScreen('game')
-          }}
-          onChapterSelect={() => setScreen('chapter-select')}
-        />
-      )}
     </div>
   )
 }
