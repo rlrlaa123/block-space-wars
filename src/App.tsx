@@ -54,9 +54,14 @@ export default function App() {
   const startGame = useCallback((chapter: number, stage = 0) => {
     chapterRef.current = chapter
     stageRef.current = stage
-    setCutsceneChapter(chapter)
-    setCutsceneType('prologue')
-    setScreen('cutscene-prologue')
+    // Only show prologue cutscene on stage 0 (first stage of chapter)
+    if (stage === 0) {
+      setCutsceneChapter(chapter)
+      setCutsceneType('prologue')
+      setScreen('cutscene-prologue')
+    } else {
+      setScreen('game')
+    }
   }, [])
 
   const startGameplay = useCallback(() => {
