@@ -17,8 +17,8 @@ export interface LayoutInfo {
 }
 
 export function computeLayout(canvasW: number, canvasH: number): LayoutInfo {
-  const gridOffsetY = 72 // below HUD (44px bar + 6px progress bar + padding)
   const cellSize = (canvasW - BRICK_GAP * (GRID_COLS + 1)) / GRID_COLS
+  const gridOffsetY = 72 + cellSize + BRICK_GAP // HUD + 1 empty row for ceiling bounce
   const launchY = canvasH - 80 // above bottom HUD bar (80px reserved for bottom UI)
   return { gridOffsetY, cellSize, canvasW, canvasH, launchY }
 }
