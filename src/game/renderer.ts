@@ -778,9 +778,10 @@ export function render(
   }
 
   // ── PASS 2-5: Game area (clipped between top HUD and bottom HUD) ──
+  const gameClipTop = 68 // matches HUD bar height, not gridOffsetY
   ctx.save()
   ctx.beginPath()
-  ctx.rect(0, layout.gridOffsetY, canvasW, layout.launchY + BALL_RADIUS + 2 - layout.gridOffsetY)
+  ctx.rect(0, gameClipTop, canvasW, layout.launchY + BALL_RADIUS + 2 - gameClipTop)
   ctx.clip()
 
   // PASS 2: Game objects
