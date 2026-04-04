@@ -14,6 +14,7 @@ const SAVE_KEY = 'bsw_progress'
 interface Progress {
   chapter: number
   stage: number
+  ballCount: number
 }
 
 function loadProgress(): Progress {
@@ -24,18 +25,23 @@ function loadProgress(): Progress {
       return {
         chapter: Math.min(parsed.chapter ?? 0, TOTAL_CHAPTERS - 1),
         stage: parsed.stage ?? 0,
+        ballCount: parsed.ballCount ?? 3,
       }
     }
   } catch { /* ignore */ }
-  return { chapter: 0, stage: 0 }
+  return { chapter: 0, stage: 0, ballCount: 3 }
 }
 
-function saveProgress(chapter: number, stage: number) {
+function saveProgress(chapter: number, stage: number, ballCount?: number) {
   try {
     const current = loadProgress()
-    // Save if further in game (higher chapter, or same chapter + higher stage)
-    if (chapter > current.chapter || (chapter === current.chapter && stage > current.stage)) {
-      localStorage.setItem(SAVE_KEY, JSON.stringify({ chapter, stage }))
+    const isAhead = chapter > current.chapter || (chapter === current.chapter && stage > current.stage)
+    const isSame = chapter === current.chapter && stage === current.stage
+    if (isAhead || (isSame && ballCount !== undefined)) {
+      localStorage.setItem(SAVE_KEY, JSON.stringify({
+        chapter, stage,
+        ballCount: ballCount ?? current.ballCount,
+      }))
     }
   } catch { /* ignore */ }
 }
@@ -52,9 +58,10 @@ export default function App() {
   const [cutsceneChapter, setCutsceneChapter] = useState(0)
   const [cutsceneType, setCutsceneType] = useState<'prologue' | 'epilogue'>('prologue')
 
-  const startGame = useCallback((chapter: number, stage = 0) => {
+  const startGame = useCallback((chapter: number, stage = 0, ballCount?: number) => {
     chapterRef.current = chapter
     stageRef.current = stage
+    if (ballCount !== undefined) ballCountRef.current = ballCount
     // Only show prologue cutscene on stage 0 (first stage of chapter)
     if (stage === 0) {
       setCutsceneChapter(chapter)
@@ -75,8 +82,9 @@ export default function App() {
 
     const engine = createEngine(canvasRef.current, {
       onChapterClear(chapter) {
-        ballCountRef.current = engineRef.current?.getBallCount()
-        saveProgress(chapter + 1, 0)
+        const bc = engineRef.current?.getBallCount() ?? 3
+        ballCountRef.current = bc
+        saveProgress(chapter + 1, 0, bc)
         setProgress(loadProgress())
         chapterRef.current = chapter
         setCutsceneChapter(chapter)
@@ -103,10 +111,11 @@ export default function App() {
       onStageLoaded(chapter, stage) {
         chapterRef.current = chapter
         stageRef.current = stage
-        saveProgress(chapter, stage)
+        const bc = engineRef.current?.getBallCount()
+        saveProgress(chapter, stage, bc)
         setProgress(loadProgress())
       },
-    }, chapterRef.current, stageRef.current, ballCountRef.current)
+    }, chapterRef.current, stageRef.current, ballCountRef.current ?? loadProgress().ballCount)
 
     engineRef.current = engine
     return () => engine.destroy()
@@ -118,7 +127,7 @@ export default function App() {
     return (
       <TitleScreen
         hasProgress={progress.chapter > 0 || progress.stage > 0}
-        onStart={() => startGame(progress.chapter, progress.stage)}
+        onStart={() => startGame(progress.chapter, progress.stage, progress.ballCount)}
         onChapterSelect={() => setScreen('chapter-select')}
       />
     )
@@ -128,7 +137,8 @@ export default function App() {
     return (
       <ChapterSelect
         unlockedChapter={progress.chapter}
-        onSelect={(ch) => startGame(ch, ch === progress.chapter ? progress.stage : 0)}
+        unlockedStage={progress.stage}
+        onSelect={(ch, stage) => startGame(ch, stage, ch === progress.chapter && stage === progress.stage ? progress.ballCount : undefined)}
         onBack={() => setScreen('title')}
       />
     )

@@ -1,13 +1,15 @@
-import { useEffect, useRef } from 'react'
-import { CHAPTERS, TOTAL_CHAPTERS, STAR_COUNT, MAX_CANVAS_WIDTH } from '../game/constants'
+import { useState, useEffect, useRef } from 'react'
+import { CHAPTERS, TOTAL_CHAPTERS, STAGES_PER_CHAPTER, STAR_COUNT, MAX_CANVAS_WIDTH } from '../game/constants'
 
 interface Props {
   unlockedChapter: number
-  onSelect: (chapter: number) => void
+  unlockedStage: number
+  onSelect: (chapter: number, stage: number) => void
   onBack: () => void
 }
 
-export function ChapterSelect({ unlockedChapter, onSelect, onBack }: Props) {
+export function ChapterSelect({ unlockedChapter, unlockedStage, onSelect, onBack }: Props) {
+  const [expandedChapter, setExpandedChapter] = useState<number | null>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   // Animated starfield background
@@ -106,99 +108,143 @@ export function ChapterSelect({ unlockedChapter, onSelect, onBack }: Props) {
         <div style={{
           display: 'flex', flexDirection: 'column', gap: 10,
           width: '100%', maxWidth: 340,
+          overflowY: 'auto', maxHeight: '65vh',
         }}>
           {CHAPTERS.map((ch, i) => {
             const locked = i > unlockedChapter
             const isCurrent = i === unlockedChapter
+            const isExpanded = expandedChapter === i
             const delay = i * 0.08
+            const maxStage = isCurrent ? unlockedStage : (locked ? -1 : STAGES_PER_CHAPTER - 1)
 
             return (
-              <button
-                key={i}
-                onClick={() => !locked && onSelect(i)}
-                disabled={locked}
-                style={{
-                  position: 'relative',
-                  padding: '14px 18px',
-                  fontSize: 15,
-                  fontFamily: 'sans-serif',
-                  fontWeight: 600,
-                  background: locked
-                    ? 'rgba(255,255,255,0.03)'
-                    : `linear-gradient(135deg, ${hexToRgba(ch.brickColor, 0.15)} 0%, ${hexToRgba(ch.brickColor, 0.06)} 100%)`,
-                  color: locked ? 'rgba(255,255,255,0.25)' : '#fff',
-                  border: locked
-                    ? '1px solid rgba(255,255,255,0.06)'
-                    : isCurrent
-                      ? `1.5px solid ${hexToRgba(ch.accentColor, 0.6)}`
-                      : `1px solid ${hexToRgba(ch.brickColor, 0.25)}`,
-                  borderRadius: 12,
-                  cursor: locked ? 'not-allowed' : 'pointer',
-                  textAlign: 'left',
-                  minHeight: 52,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  animation: `cardSlideIn 0.4s ease-out ${delay}s both`,
-                  transition: 'background 0.2s, border-color 0.2s, transform 0.15s',
-                  backdropFilter: locked ? 'none' : 'blur(8px)',
-                  overflow: 'hidden',
-                }}
-              >
-                {/* Chapter number badge */}
-                <div style={{
-                  width: 36, height: 36,
-                  borderRadius: 8,
-                  background: locked
-                    ? 'rgba(255,255,255,0.05)'
-                    : `linear-gradient(135deg, ${ch.brickColor}, ${ch.accentColor})`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontFamily: 'monospace', fontSize: 14, fontWeight: 'bold',
-                  color: locked ? 'rgba(255,255,255,0.2)' : '#fff',
-                  flexShrink: 0,
-                  boxShadow: locked ? 'none' : `0 2px 8px ${hexToRgba(ch.brickColor, 0.3)}`,
-                }}>
-                  {locked ? '🔒' : i + 1}
-                </div>
-
-                {/* Chapter info */}
-                <div style={{ flex: 1, minWidth: 0 }}>
+              <div key={i} style={{ animation: `cardSlideIn 0.4s ease-out ${delay}s both` }}>
+                {/* Chapter header */}
+                <button
+                  onClick={() => !locked && setExpandedChapter(isExpanded ? null : i)}
+                  disabled={locked}
+                  style={{
+                    width: '100%',
+                    position: 'relative',
+                    padding: '14px 18px',
+                    fontSize: 15,
+                    fontFamily: 'sans-serif',
+                    fontWeight: 600,
+                    background: locked
+                      ? 'rgba(255,255,255,0.03)'
+                      : `linear-gradient(135deg, ${hexToRgba(ch.brickColor, 0.15)} 0%, ${hexToRgba(ch.brickColor, 0.06)} 100%)`,
+                    color: locked ? 'rgba(255,255,255,0.25)' : '#fff',
+                    border: locked
+                      ? '1px solid rgba(255,255,255,0.06)'
+                      : isCurrent
+                        ? `1.5px solid ${hexToRgba(ch.accentColor, 0.6)}`
+                        : `1px solid ${hexToRgba(ch.brickColor, 0.25)}`,
+                    borderRadius: isExpanded ? '12px 12px 0 0' : 12,
+                    cursor: locked ? 'not-allowed' : 'pointer',
+                    textAlign: 'left',
+                    minHeight: 52,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    transition: 'border-radius 0.2s',
+                    backdropFilter: locked ? 'none' : 'blur(8px)',
+                  }}
+                >
+                  {/* Badge */}
                   <div style={{
-                    fontSize: 10, fontFamily: 'monospace',
-                    color: locked ? 'rgba(255,255,255,0.15)' : hexToRgba(ch.brickColor, 0.8),
-                    marginBottom: 2, letterSpacing: 1,
-                  }}>
-                    CHAPTER {i + 1}
-                  </div>
-                  <div style={{
-                    fontSize: 15, fontWeight: 600,
-                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                  }}>
-                    {ch.name}
-                  </div>
-                </div>
-
-                {/* Current indicator */}
-                {isCurrent && !locked && (
-                  <div style={{
-                    fontSize: 10, fontFamily: 'monospace',
-                    color: ch.accentColor, letterSpacing: 1,
+                    width: 36, height: 36, borderRadius: 8,
+                    background: locked ? 'rgba(255,255,255,0.05)' : `linear-gradient(135deg, ${ch.brickColor}, ${ch.accentColor})`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontFamily: 'monospace', fontSize: 14, fontWeight: 'bold',
+                    color: locked ? 'rgba(255,255,255,0.2)' : '#fff',
                     flexShrink: 0,
+                    boxShadow: locked ? 'none' : `0 2px 8px ${hexToRgba(ch.brickColor, 0.3)}`,
                   }}>
-                    NOW
+                    {locked ? '🔒' : i + 1}
                   </div>
-                )}
 
-                {/* Completed check */}
-                {i < unlockedChapter && (
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{
+                      fontSize: 10, fontFamily: 'monospace',
+                      color: locked ? 'rgba(255,255,255,0.15)' : hexToRgba(ch.brickColor, 0.8),
+                      marginBottom: 2, letterSpacing: 1,
+                    }}>
+                      CHAPTER {i + 1}
+                    </div>
+                    <div style={{
+                      fontSize: 15, fontWeight: 600,
+                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                    }}>
+                      {ch.name}
+                    </div>
+                  </div>
+
+                  {/* Expand arrow or status */}
+                  {!locked && (
+                    <div style={{
+                      fontSize: 12, flexShrink: 0, color: 'rgba(255,255,255,0.4)',
+                      transition: 'transform 0.2s',
+                      transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)',
+                    }}>
+                      ▼
+                    </div>
+                  )}
+                </button>
+
+                {/* Stage grid (expanded) */}
+                {isExpanded && !locked && (
                   <div style={{
-                    fontSize: 16, flexShrink: 0,
-                    color: '#4ecdc4',
+                    background: 'rgba(255,255,255,0.03)',
+                    border: `1px solid ${hexToRgba(ch.brickColor, 0.15)}`,
+                    borderTop: 'none',
+                    borderRadius: '0 0 12px 12px',
+                    padding: '12px 14px',
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(5, 1fr)',
+                    gap: 8,
                   }}>
-                    ✓
+                    {Array.from({ length: STAGES_PER_CHAPTER }, (_, s) => {
+                      const stageLocked = s > maxStage
+                      const isStageCurrent = isCurrent && s === unlockedStage
+                      return (
+                        <button
+                          key={s}
+                          onClick={() => !stageLocked && onSelect(i, s)}
+                          disabled={stageLocked}
+                          style={{
+                            width: '100%',
+                            aspectRatio: '1',
+                            fontSize: 13,
+                            fontFamily: 'monospace',
+                            fontWeight: 600,
+                            background: stageLocked
+                              ? 'rgba(255,255,255,0.03)'
+                              : isStageCurrent
+                                ? `linear-gradient(135deg, ${ch.accentColor}, ${ch.brickColor})`
+                                : `rgba(255,255,255,0.06)`,
+                            color: stageLocked ? 'rgba(255,255,255,0.15)' : '#fff',
+                            border: isStageCurrent
+                              ? `1.5px solid ${ch.accentColor}`
+                              : stageLocked
+                                ? '1px solid rgba(255,255,255,0.04)'
+                                : `1px solid ${hexToRgba(ch.brickColor, 0.2)}`,
+                            borderRadius: 8,
+                            cursor: stageLocked ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            minHeight: 40,
+                            minWidth: 40,
+                            transition: 'background 0.15s',
+                          }}
+                        >
+                          {stageLocked ? '🔒' : s + 1}
+                        </button>
+                      )
+                    })}
                   </div>
                 )}
-              </button>
+              </div>
             )
           })}
         </div>
