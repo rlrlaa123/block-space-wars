@@ -2,7 +2,7 @@ import type { GameState, Ball, Brick, Item, GamePhase } from './types'
 import {
   BALL_SPEED, BALL_RADIUS, BALL_STAGGER_MS, MAX_BALLS,
   TURN_TIMEOUT_S, STAGES_PER_CHAPTER, INITIAL_BALL_COUNT,
-  RECALL_SPEED, GRID_COLS, GRID_ROWS,
+  RECALL_SPEED, GRID_COLS, GRID_ROWS, TURNS_PER_STAGE,
 } from './constants'
 import { CHAPTERS } from './constants'
 
@@ -21,6 +21,7 @@ export function createInitialState(): GameState {
     currentStage: 0,
     isBossStage: false,
     score: 0,
+    turnCount: 0,
     firstLandedX: null,
     showTutorial: true,
     clearTimer: 0,
@@ -207,11 +208,15 @@ export function endTurn(state: GameState): GamePhase {
     state.launchX = state.firstLandedX
   }
 
-  // Check stage clear (all bricks dead)
+  // Increment turn counter
+  state.turnCount++
+
+  // Check stage clear: survived enough turns
   const aliveBricks = state.bricks.filter(b => !b.dead)
-  if (aliveBricks.length === 0) {
+  if (state.turnCount >= TURNS_PER_STAGE) {
     state.phase = 'stage-clear'
     state.clearTimer = 0
+    state.turnCount = 0
     return 'stage-clear'
   }
 

@@ -241,6 +241,10 @@ function drawHUD(ctx: CanvasRenderingContext2D, state: GameState, layout: Layout
   const y = hudH / 2
   ctx.textAlign = 'left'
   ctx.fillText(`${chapterName} ${state.currentStage + 1}/10`, 8, y)
+  ctx.textAlign = 'center'
+  ctx.fillStyle = 'rgba(255,255,255,0.5)'
+  ctx.fillText(`턴 ${state.turnCount}/15`, layout.canvasW / 2, y)
+  ctx.fillStyle = '#ffffff'
   ctx.textAlign = 'right'
   ctx.fillText(`●×${state.ballCount}`, layout.canvasW - 8, y)
 }

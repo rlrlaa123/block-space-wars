@@ -117,6 +117,7 @@ export interface GameState {
   currentStage: number   // 0-9 (0-8 normal, 9 boss)
   isBossStage: boolean
   score: number
+  turnCount: number       // turns survived this stage
   firstLandedX: number | null // x of first ball to land this turn
   showTutorial: boolean
   // Stage clear / chapter clear animation
