@@ -598,14 +598,20 @@ export function render(
     ctx.fillRect(0, 0, canvasW, canvasH)
   }
 
-  // ── PASS 2: Game objects ──
+  // ── PASS 2-5: Game area (clipped to avoid bleeding into HUD) ──
+  ctx.save()
+  ctx.beginPath()
+  ctx.rect(0, 0, canvasW, layout.launchY + BALL_RADIUS + 2)
+  ctx.clip()
+
+  // PASS 2: Game objects
   drawGridContainer(ctx, layout)
   drawDangerLine(ctx, layout)
 
   for (const item of state.items) drawItem(ctx, item, layout)
   for (const brick of state.bricks) drawBrick(ctx, brick, layout, brickColor, accentColor)
 
-  // ── PASS 3: Glow pass (additive blending) ──
+  // PASS 3: Glow pass (additive blending)
   ctx.globalCompositeOperation = 'lighter'
   renderGlowEffects(ctx)
   renderGlowParticles(ctx)
@@ -623,13 +629,15 @@ export function render(
   }
   ctx.globalCompositeOperation = 'source-over'
 
-  // ── PASS 4: Normal particles + rings ──
+  // PASS 4: Normal particles + rings
   renderRings(ctx)
   renderParticles(ctx)
   renderFloorImpacts(ctx, layout.launchY)
 
-  // ── PASS 5: Balls ──
+  // PASS 5: Balls
   for (const ball of state.balls) drawBall(ctx, ball, accentColor)
+
+  ctx.restore() // end game area clip
 
   // ── PASS 6: HUD + overlays ──
   drawAimLine(ctx, state, layout)
