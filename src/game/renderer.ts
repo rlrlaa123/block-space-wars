@@ -79,21 +79,28 @@ function drawBall(ctx: CanvasRenderingContext2D, ball: Ball, _accentColor: strin
   ctx.fill()
 }
 
-// ── Brick rendering with HP-tier colors ──
+// ── Brick rendering (3D-style with lighting) ──
 
-function getBrickColor(brick: Brick, brickColor: string, accentColor: string): string {
-  if (brick.flashTimer > 0) return '#ffffff'
+function getBrickColors(brick: Brick, brickColor: string, accentColor: string): [string, string] {
+  // Returns [baseColor, darkColor] pair
+  if (brick.flashTimer > 0) return ['#ffffff', '#dddddd']
   switch (brick.type) {
-    case 'gravity-well': return '#9b59b6'
-    case 'shield': return '#3498db'
-    case 'splitter': return '#e67e22'
+    case 'gravity-well': return ['#9b59b6', '#7d3c98']
+    case 'shield': return ['#3498db', '#2176ad']
+    case 'splitter': return ['#e67e22', '#c0601a']
     default: {
-      // HP-tier brightness: lower HP = brighter
       const ratio = brick.hp / brick.maxHp
-      if (ratio <= 0.25) return accentColor
-      return brickColor
+      const base = ratio <= 0.25 ? accentColor : brickColor
+      return [base, darkenHex(base, 0.25)]
     }
   }
+}
+
+function darkenHex(hex: string, amount: number): string {
+  const r = Math.max(0, Math.round(parseInt(hex.slice(1, 3), 16) * (1 - amount)))
+  const g = Math.max(0, Math.round(parseInt(hex.slice(3, 5), 16) * (1 - amount)))
+  const b = Math.max(0, Math.round(parseInt(hex.slice(5, 7), 16) * (1 - amount)))
+  return `rgb(${r},${g},${b})`
 }
 
 function drawBrick(
@@ -102,169 +109,280 @@ function drawBrick(
 ) {
   if (brick.dead) return
   const { x, y, w, h } = brickRect(brick, layout)
-  const color = getBrickColor(brick, brickColor, accentColor)
+  const [color, darkColor] = getBrickColors(brick, brickColor, accentColor)
+  const rad = Math.min(w, h) * 0.12
 
-  // Adjacent flash (brightTimer)
   if (brick.flashTimer > 0) {
-    ctx.fillStyle = '#ffffff'
     brick.flashTimer--
-  } else {
-    ctx.fillStyle = color
+    ctx.fillStyle = '#ffffff'
+    ctx.beginPath()
+    ctx.roundRect(x, y, w, h, rad)
+    ctx.fill()
+    // HP text
+    ctx.fillStyle = '#000'
+    ctx.font = `bold ${Math.min(w * 0.38, 13)}px monospace`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(`${brick.hp}`, x + w / 2, y + h / 2)
+    return
   }
-  ctx.fillRect(x, y, w, h)
 
-  // Subtle border for definition
-  ctx.strokeStyle = 'rgba(255,255,255,0.1)'
+  // ── 3D brick body ──
+
+  // Bottom shadow edge (gives depth)
+  ctx.fillStyle = darkColor
+  ctx.beginPath()
+  ctx.roundRect(x, y + 2, w, h, rad)
+  ctx.fill()
+
+  // Main face with gradient (top-left highlight)
+  const faceGrad = ctx.createLinearGradient(x, y, x + w, y + h)
+  faceGrad.addColorStop(0, lightenColor(color, 0.15))
+  faceGrad.addColorStop(0.4, color)
+  faceGrad.addColorStop(1, darkColor)
+  ctx.fillStyle = faceGrad
+  ctx.beginPath()
+  ctx.roundRect(x, y, w, h - 2, rad)
+  ctx.fill()
+
+  // Top highlight (gloss strip)
+  ctx.fillStyle = 'rgba(255,255,255,0.12)'
+  ctx.beginPath()
+  ctx.roundRect(x + 2, y + 1, w - 4, h * 0.35, [rad, rad, 0, 0])
+  ctx.fill()
+
+  // Inner border (subtle bevel)
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)'
   ctx.lineWidth = 0.5
-  ctx.strokeRect(x, y, w, h)
+  ctx.beginPath()
+  ctx.roundRect(x + 0.5, y + 0.5, w - 1, h - 2.5, rad)
+  ctx.stroke()
 
-  // HP text
-  ctx.fillStyle = brick.flashTimer > 0 ? '#000' : '#ffffff'
-  ctx.font = `bold ${Math.min(w * 0.4, 14)}px monospace`
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  ctx.fillText(`${brick.hp}`, x + w / 2, y + h / 2)
-
-  // Gravity well radius indicator
+  // ── Special brick decorations ──
   if (brick.type === 'gravity-well') {
-    ctx.strokeStyle = 'rgba(155, 89, 182, 0.25)'
+    // Swirling rings
+    ctx.strokeStyle = 'rgba(155, 89, 182, 0.2)'
     ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.arc(x + w / 2, y + h / 2, layout.cellSize * 1.5, 0, Math.PI * 2)
+    ctx.stroke()
     ctx.beginPath()
     ctx.arc(x + w / 2, y + h / 2, layout.cellSize * 2, 0, Math.PI * 2)
     ctx.stroke()
+    // Center glow
+    ctx.globalAlpha = 0.2
+    const gwGlow = ctx.createRadialGradient(x + w / 2, y + h / 2, 0, x + w / 2, y + h / 2, w * 0.6)
+    gwGlow.addColorStop(0, '#d4a6ff')
+    gwGlow.addColorStop(1, 'transparent')
+    ctx.fillStyle = gwGlow
+    ctx.beginPath()
+    ctx.arc(x + w / 2, y + h / 2, w * 0.6, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.globalAlpha = 1
   }
 
-  // Shield arc
   if (brick.type === 'shield' && brick.shieldAngle !== undefined) {
-    const cx = x + w / 2, cy = y + h / 2
+    const scx = x + w / 2, scy = y + h / 2
     const radius = layout.cellSize * 1.2
     const halfArc = (SHIELD_ARC_DEG * Math.PI / 180) / 2
+    // Shield glow
+    ctx.globalAlpha = 0.15
+    ctx.strokeStyle = accentColor
+    ctx.lineWidth = 8
+    ctx.beginPath()
+    ctx.arc(scx, scy, radius, brick.shieldAngle - halfArc, brick.shieldAngle + halfArc)
+    ctx.stroke()
+    ctx.globalAlpha = 1
+    // Shield arc
     ctx.strokeStyle = accentColor
     ctx.lineWidth = 3
     ctx.beginPath()
-    ctx.arc(cx, cy, radius, brick.shieldAngle - halfArc, brick.shieldAngle + halfArc)
+    ctx.arc(scx, scy, radius, brick.shieldAngle - halfArc, brick.shieldAngle + halfArc)
     ctx.stroke()
     ctx.lineWidth = 1
   }
+
+  if (brick.type === 'splitter') {
+    // Split line indicator
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)'
+    ctx.lineWidth = 1
+    ctx.setLineDash([3, 3])
+    ctx.beginPath()
+    ctx.moveTo(x + w / 2, y + 3)
+    ctx.lineTo(x + w / 2, y + h - 5)
+    ctx.stroke()
+    ctx.setLineDash([])
+  }
+
+  // ── HP text with shadow ──
+  const fontSize = Math.min(w * 0.38, 13)
+  ctx.font = `bold ${fontSize}px monospace`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  // Text shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.35)'
+  ctx.fillText(`${brick.hp}`, x + w / 2, y + h / 2 + 1)
+  // Text
+  ctx.fillStyle = '#ffffff'
+  ctx.fillText(`${brick.hp}`, x + w / 2, y + h / 2)
 }
 
-// ── Item rendering ──
+function lightenColor(hex: string, amount: number): string {
+  let r: number, g: number, b: number
+  if (hex.startsWith('rgb')) {
+    const m = hex.match(/(\d+)/g)
+    if (!m) return hex
+    r = parseInt(m[0]); g = parseInt(m[1]); b = parseInt(m[2])
+  } else {
+    r = parseInt(hex.slice(1, 3), 16)
+    g = parseInt(hex.slice(3, 5), 16)
+    b = parseInt(hex.slice(5, 7), 16)
+  }
+  r = Math.min(255, Math.round(r + (255 - r) * amount))
+  g = Math.min(255, Math.round(g + (255 - g) * amount))
+  b = Math.min(255, Math.round(b + (255 - b) * amount))
+  return `rgb(${r},${g},${b})`
+}
+
+// ── Item rendering (3D rounded-rect, unified with brick style) ──
 
 function drawItem(ctx: CanvasRenderingContext2D, item: Item, layout: LayoutInfo) {
   if (item.collected) return
-  const x = BRICK_GAP + item.col * (layout.cellSize + BRICK_GAP) + layout.cellSize / 2
-  const y = layout.gridOffsetY + item.row * (layout.cellSize + BRICK_GAP) + layout.cellSize / 2
-  const r = layout.cellSize * 0.28
+  const cellX = BRICK_GAP + item.col * (layout.cellSize + BRICK_GAP)
+  const cellY = layout.gridOffsetY + item.row * (layout.cellSize + BRICK_GAP)
+  const pad = layout.cellSize * 0.15
+  const ix = cellX + pad
+  const iy = cellY + pad
+  const iw = layout.cellSize - pad * 2
+  const ih = layout.cellSize - pad * 2
+  const cx = cellX + layout.cellSize / 2
+  const cy = cellY + layout.cellSize / 2
+  const rad = Math.min(iw, ih) * 0.2
 
-  // Item color map
-  const colors: Record<string, [string, string]> = {
-    ball:       ['#2ecc71', '#27ae60'],
-    bomb:       ['#e74c3c', '#c0392b'],
-    laser:      ['#3498db', '#2980b9'],
-    multiplier: ['#f39c12', '#e67e22'],
-    pierce:     ['#9b59b6', '#8e44ad'],
+  // Color pairs [light, dark]
+  const colorMap: Record<string, [string, string]> = {
+    ball:       ['#2ecc71', '#1a9c54'],
+    bomb:       ['#e74c3c', '#b92d22'],
+    laser:      ['#3498db', '#2176ad'],
+    multiplier: ['#f39c12', '#c77d0e'],
+    pierce:     ['#9b59b6', '#7d3c98'],
   }
-  const [c1, c2] = colors[item.type] ?? ['#f1c40f', '#e67e22']
+  const [c1, c2] = colorMap[item.type] ?? ['#f1c40f', '#c7a00e']
 
-  // Outer glow
-  ctx.globalAlpha = 0.25
-  const glow = ctx.createRadialGradient(x, y, 0, x, y, r * 2.5)
+  // Outer glow (soft halo)
+  ctx.globalAlpha = 0.18
+  const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, iw)
   glow.addColorStop(0, c1)
   glow.addColorStop(1, 'transparent')
   ctx.fillStyle = glow
   ctx.beginPath()
-  ctx.arc(x, y, r * 2.5, 0, Math.PI * 2)
+  ctx.arc(cx, cy, iw, 0, Math.PI * 2)
   ctx.fill()
   ctx.globalAlpha = 1
 
-  // Main circle with gradient
-  const grad = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, 0, x, y, r)
-  grad.addColorStop(0, c1)
-  grad.addColorStop(1, c2)
-  ctx.fillStyle = grad
+  // Bottom shadow (depth)
+  ctx.fillStyle = c2
   ctx.beginPath()
-  ctx.arc(x, y, r, 0, Math.PI * 2)
+  ctx.roundRect(ix, iy + 2, iw, ih, rad)
   ctx.fill()
 
-  // Rim
-  ctx.strokeStyle = 'rgba(255,255,255,0.25)'
-  ctx.lineWidth = 1
+  // Main face gradient
+  const faceGrad = ctx.createLinearGradient(ix, iy, ix + iw, iy + ih)
+  faceGrad.addColorStop(0, lightenColor(c1, 0.2))
+  faceGrad.addColorStop(0.4, c1)
+  faceGrad.addColorStop(1, c2)
+  ctx.fillStyle = faceGrad
   ctx.beginPath()
-  ctx.arc(x, y, r, 0, Math.PI * 2)
+  ctx.roundRect(ix, iy, iw, ih - 2, rad)
+  ctx.fill()
+
+  // Top gloss strip
+  ctx.fillStyle = 'rgba(255,255,255,0.18)'
+  ctx.beginPath()
+  ctx.roundRect(ix + 2, iy + 1, iw - 4, ih * 0.3, [rad, rad, 0, 0])
+  ctx.fill()
+
+  // Inner border (bevel)
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)'
+  ctx.lineWidth = 0.5
+  ctx.beginPath()
+  ctx.roundRect(ix + 0.5, iy + 0.5, iw - 1, ih - 2.5, rad)
   ctx.stroke()
 
-  // Highlight
-  ctx.fillStyle = 'rgba(255,255,255,0.35)'
-  ctx.beginPath()
-  ctx.arc(x - r * 0.25, y - r * 0.3, r * 0.35, 0, Math.PI * 2)
-  ctx.fill()
-
   // Icon / label
-  ctx.fillStyle = '#fff'
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
+  const fontSize = Math.min(iw * 0.45, 14)
 
   switch (item.type) {
     case 'ball':
-      ctx.font = `bold ${Math.round(r * 0.9)}px sans-serif`
-      ctx.fillText(`+${item.bonusAmount ?? 1}`, x, y + 1)
+      // Text shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.3)'
+      ctx.font = `bold ${fontSize}px sans-serif`
+      ctx.fillText(`+${item.bonusAmount ?? 1}`, cx, cy + 1)
+      ctx.fillStyle = '#fff'
+      ctx.fillText(`+${item.bonusAmount ?? 1}`, cx, cy)
       break
     case 'bomb': {
-      // Draw a bomb icon instead of emoji
-      const br = r * 0.35
+      // Bomb body
+      const br = iw * 0.14
       ctx.fillStyle = '#1a1a2e'
       ctx.beginPath()
-      ctx.arc(x, y + 1, br, 0, Math.PI * 2)
+      ctx.arc(cx, cy + 1, br, 0, Math.PI * 2)
       ctx.fill()
       // Fuse
       ctx.strokeStyle = '#f5a623'
       ctx.lineWidth = 1.5
       ctx.beginPath()
-      ctx.moveTo(x + br * 0.5, y - br * 0.5)
-      ctx.quadraticCurveTo(x + br * 1.2, y - br * 1.5, x + br * 0.3, y - br * 1.8)
+      ctx.moveTo(cx + br * 0.5, cy - br * 0.3)
+      ctx.quadraticCurveTo(cx + br * 1.5, cy - br * 2, cx + br * 0.2, cy - br * 2.5)
       ctx.stroke()
       // Spark
       ctx.fillStyle = '#ffd93d'
       ctx.beginPath()
-      ctx.arc(x + br * 0.3, y - br * 1.8, 2, 0, Math.PI * 2)
+      ctx.arc(cx + br * 0.2, cy - br * 2.5, 2, 0, Math.PI * 2)
       ctx.fill()
       break
     }
     case 'laser': {
-      // Lightning bolt shape
+      // Lightning bolt
       ctx.fillStyle = '#fff'
+      const s = iw * 0.15
       ctx.beginPath()
-      const s = r * 0.4
-      ctx.moveTo(x - s * 0.3, y - s * 1.2)
-      ctx.lineTo(x + s * 0.5, y - s * 0.2)
-      ctx.lineTo(x - s * 0.1, y - s * 0.1)
-      ctx.lineTo(x + s * 0.3, y + s * 1.2)
-      ctx.lineTo(x - s * 0.5, y + s * 0.2)
-      ctx.lineTo(x + s * 0.1, y + s * 0.1)
+      ctx.moveTo(cx - s * 0.2, cy - s * 1.4)
+      ctx.lineTo(cx + s * 0.6, cy - s * 0.2)
+      ctx.lineTo(cx - s * 0.05, cy - s * 0.1)
+      ctx.lineTo(cx + s * 0.2, cy + s * 1.4)
+      ctx.lineTo(cx - s * 0.6, cy + s * 0.2)
+      ctx.lineTo(cx + s * 0.05, cy + s * 0.1)
       ctx.closePath()
       ctx.fill()
       break
     }
     case 'multiplier':
-      ctx.font = `bold ${Math.round(r * 0.85)}px sans-serif`
-      ctx.fillText('×3', x, y + 1)
+      ctx.fillStyle = 'rgba(0,0,0,0.3)'
+      ctx.font = `bold ${fontSize}px sans-serif`
+      ctx.fillText('×3', cx, cy + 1)
+      ctx.fillStyle = '#fff'
+      ctx.fillText('×3', cx, cy)
       break
     case 'pierce': {
-      // Diamond shape
+      // Diamond
       ctx.fillStyle = '#fff'
+      const d = iw * 0.2
       ctx.beginPath()
-      const d = r * 0.5
-      ctx.moveTo(x, y - d)
-      ctx.lineTo(x + d * 0.7, y)
-      ctx.lineTo(x, y + d)
-      ctx.lineTo(x - d * 0.7, y)
+      ctx.moveTo(cx, cy - d)
+      ctx.lineTo(cx + d * 0.7, cy)
+      ctx.lineTo(cx, cy + d)
+      ctx.lineTo(cx - d * 0.7, cy)
       ctx.closePath()
       ctx.fill()
       break
     }
     default:
-      ctx.font = `bold ${Math.round(r * 0.9)}px sans-serif`
-      ctx.fillText('?', x, y + 1)
+      ctx.fillStyle = '#fff'
+      ctx.font = `bold ${fontSize}px sans-serif`
+      ctx.fillText('?', cx, cy)
   }
 }
 
