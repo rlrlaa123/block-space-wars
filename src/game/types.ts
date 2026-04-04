@@ -117,7 +117,8 @@ export interface GameState {
   currentStage: number   // 0-9 (0-8 normal, 9 boss)
   isBossStage: boolean
   score: number
-  turnCount: number       // turns survived this stage
+  turnCount: number       // turns played this stage
+  rowsSpawned: number     // rows spawned so far (stage clear when all spawned + 0 bricks)
   firstLandedX: number | null // x of first ball to land this turn
   showTutorial: boolean
   // Stage clear / chapter clear animation

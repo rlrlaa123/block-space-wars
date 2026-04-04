@@ -9,8 +9,17 @@ export const BALL_STAGGER_MS = 35      // ms between each ball (brick-blitz: 35)
 export const RECALL_SPEED = 1800       // px/s for ball recall
 export const SUBSTEPS = 4              // collision substeps per frame
 export const FIXED_DT = 1 / 60        // physics timestep (seconds)
-export const TURN_TIMEOUT_S = 30       // force balls down after 30s (배속이 먼저 작동)
-export const TURNS_PER_STAGE = 15      // 15턴 생존 = 스테이지 클리어
+// Stage: total rows to spawn per stage. Once all rows spawned + all bricks dead = clear
+export const STAGE_TOTAL_ROWS: Record<number, number> = {
+  // Chapter 1: easy, fewer rows
+  0: 8,
+  // Chapter 2-3: medium
+  1: 10,
+  2: 12,
+  // Chapter 4-5: long
+  3: 14,
+  4: 16,
+}
 export const MIN_AIM_ANGLE = Math.PI * 10 / 180   // 10 degrees
 export const MAX_AIM_ANGLE = Math.PI * 170 / 180  // 170 degrees
 export const GRAVITY_WELL_RADIUS_CELLS = 2

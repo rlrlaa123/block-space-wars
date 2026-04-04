@@ -2,7 +2,7 @@ import type { GameState, Ball, Brick, Item, GamePhase, BrickType } from './types
 import {
   BALL_SPEED, BALL_RADIUS, BALL_STAGGER_MS, MAX_BALLS,
   STAGES_PER_CHAPTER, INITIAL_BALL_COUNT,
-  RECALL_SPEED, GRID_COLS, GRID_ROWS, TURNS_PER_STAGE,
+  RECALL_SPEED, GRID_COLS, GRID_ROWS, STAGE_TOTAL_ROWS,
 } from './constants'
 import { CHAPTERS } from './constants'
 
@@ -22,6 +22,7 @@ export function createInitialState(): GameState {
     isBossStage: false,
     score: 0,
     turnCount: 0,
+    rowsSpawned: 0,
     firstLandedX: null,
     showTutorial: true,
     clearTimer: 0,
@@ -198,15 +199,18 @@ export function endTurn(state: GameState): GamePhase {
     state.launchX = state.firstLandedX
   }
 
-  // Increment turn counter
   state.turnCount++
 
-  // Check stage clear: survived enough turns
   const aliveBricks = state.bricks.filter(b => !b.dead)
-  if (state.turnCount >= TURNS_PER_STAGE) {
+  const totalRows = STAGE_TOTAL_ROWS[state.currentChapter] ?? 10
+  const allRowsSpawned = state.rowsSpawned >= totalRows
+
+  // Stage clear: all rows spawned AND no bricks alive
+  if (allRowsSpawned && aliveBricks.length === 0) {
     state.phase = 'stage-clear'
     state.clearTimer = 0
     state.turnCount = 0
+    state.rowsSpawned = 0
     return 'stage-clear'
   }
 
@@ -225,10 +229,14 @@ export function endTurn(state: GameState): GamePhase {
   // Remove items that went below grid
   state.items = state.items.filter(i => !i.collected && i.row < GRID_ROWS)
 
-  // Spawn new row at top
-  const newRow = generateNewRow(state)
-  state.bricks.push(...newRow.bricks)
-  state.items.push(...newRow.items)
+  // Spawn new row at top (only if more rows remain)
+  const totalRows2 = STAGE_TOTAL_ROWS[state.currentChapter] ?? 10
+  if (state.rowsSpawned < totalRows2) {
+    const newRow = generateNewRow(state)
+    state.bricks.push(...newRow.bricks)
+    state.items.push(...newRow.items)
+    state.rowsSpawned++
+  }
 
   state.phase = 'idle'
   state.balls = []
