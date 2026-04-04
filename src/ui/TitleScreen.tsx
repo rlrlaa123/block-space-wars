@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { STAR_COUNT, MAX_CANVAS_WIDTH } from '../game/constants'
+import { drawSpaceTurtle } from './spaceTurtle'
 
 interface Props {
   onStart: () => void
@@ -86,139 +87,8 @@ export function TitleScreen({ onStart, onChapterSelect, hasProgress }: Props) {
       const cx = w / 2
       const floatY = Math.sin(time * 1.2) * 6
 
-      // ── Space Turtle character (center, matches cutscene) ──
-      const tCx = cx
-      const tBodyY = h * 0.40 + floatY
-
-      // Glow behind turtle
-      ctx.globalAlpha = 0.15
-      const tGlow = ctx.createRadialGradient(tCx, tBodyY - 20, 0, tCx, tBodyY - 20, 80)
-      tGlow.addColorStop(0, '#4ecdc4')
-      tGlow.addColorStop(1, 'transparent')
-      ctx.fillStyle = tGlow
-      ctx.beginPath()
-      ctx.arc(tCx, tBodyY - 20, 80, 0, Math.PI * 2)
-      ctx.fill()
-      ctx.globalAlpha = 1
-
-      // Shadow
-      ctx.fillStyle = 'rgba(0,0,0,0.25)'
-      ctx.beginPath()
-      ctx.ellipse(tCx, tBodyY + 48, 30, 8, 0, 0, Math.PI * 2)
-      ctx.fill()
-
-      // Legs (boots)
-      for (const side of [-1, 1]) {
-        const bg = ctx.createLinearGradient(tCx + side * 18, tBodyY + 30, tCx + side * 18, tBodyY + 46)
-        bg.addColorStop(0, '#d0d4d8'); bg.addColorStop(1, '#8a9098')
-        ctx.fillStyle = bg
-        ctx.beginPath(); ctx.roundRect(tCx + side * 10, tBodyY + 28, 18, 18, [0, 0, 6, 6]); ctx.fill()
-        ctx.fillStyle = '#555'
-        ctx.beginPath(); ctx.roundRect(tCx + side * 9, tBodyY + 42, 20, 5, [0, 0, 4, 4]); ctx.fill()
-      }
-
-      // Arms + gloves
-      for (const side of [-1, 1]) {
-        const ax = tCx + side * 36, ay = tBodyY + 4
-        ctx.fillStyle = '#c8ccd0'
-        ctx.beginPath(); ctx.ellipse(ax, ay, 10, 14, side * 0.3, 0, Math.PI * 2); ctx.fill()
-        const gg = ctx.createRadialGradient(ax + side * 2, ay + 10, 0, ax + side * 2, ay + 10, 8)
-        gg.addColorStop(0, '#2ecc71'); gg.addColorStop(1, '#1a8c48')
-        ctx.fillStyle = gg
-        ctx.beginPath(); ctx.arc(ax + side * 2, ay + 10, 8, 0, Math.PI * 2); ctx.fill()
-      }
-
-      // Body (spacesuit)
-      const sg = ctx.createLinearGradient(tCx, tBodyY - 28, tCx, tBodyY + 30)
-      sg.addColorStop(0, '#e8ecf0'); sg.addColorStop(0.4, '#d0d4d8'); sg.addColorStop(1, '#a8b0b8')
-      ctx.fillStyle = sg
-      ctx.beginPath(); ctx.roundRect(tCx - 28, tBodyY - 24, 56, 54, 14); ctx.fill()
-
-      // Chest panel
-      ctx.fillStyle = 'rgba(46,204,113,0.15)'
-      ctx.beginPath(); ctx.roundRect(tCx - 16, tBodyY - 10, 32, 28, 8); ctx.fill()
-      ctx.strokeStyle = 'rgba(46,204,113,0.3)'; ctx.lineWidth = 1
-      ctx.beginPath(); ctx.roundRect(tCx - 16, tBodyY - 10, 32, 28, 8); ctx.stroke()
-
-      // Buttons
-      const btnColors = ['#2ecc71', '#f39c12', '#e74c3c']
-      for (let i = 0; i < 3; i++) {
-        ctx.fillStyle = btnColors[i]
-        ctx.beginPath(); ctx.arc(tCx - 6 + i * 6, tBodyY - 4, 2.5, 0, Math.PI * 2); ctx.fill()
-        ctx.fillStyle = 'rgba(255,255,255,0.5)'
-        ctx.beginPath(); ctx.arc(tCx - 6.5 + i * 6, tBodyY - 4.5, 1, 0, Math.PI * 2); ctx.fill()
-      }
-
-      // Collar
-      ctx.fillStyle = '#bcc4cc'
-      ctx.beginPath(); ctx.ellipse(tCx, tBodyY - 24, 22, 6, 0, 0, Math.PI * 2); ctx.fill()
-
-      // Helmet
-      const helmCy = tBodyY - 50
-      const helmR = 30
-      const rg = ctx.createLinearGradient(tCx - helmR, helmCy, tCx + helmR, helmCy)
-      rg.addColorStop(0, '#c8ccd0'); rg.addColorStop(0.5, '#e8ecf0'); rg.addColorStop(1, '#a8b0b8')
-      ctx.fillStyle = rg
-      ctx.beginPath(); ctx.arc(tCx, helmCy, helmR + 4, 0, Math.PI * 2); ctx.fill()
-
-      // Visor
-      const vg = ctx.createRadialGradient(tCx - 8, helmCy - 8, 0, tCx, helmCy, helmR)
-      vg.addColorStop(0, '#1a3a4a'); vg.addColorStop(0.6, '#0d2030'); vg.addColorStop(1, '#081018')
-      ctx.fillStyle = vg
-      ctx.beginPath(); ctx.arc(tCx, helmCy, helmR, 0, Math.PI * 2); ctx.fill()
-
-      // Face
-      const fg = ctx.createRadialGradient(tCx - 3, helmCy - 2, 0, tCx, helmCy + 2, 22)
-      fg.addColorStop(0, '#4ceb9a'); fg.addColorStop(0.6, '#2ecc71'); fg.addColorStop(1, '#1a9c54')
-      ctx.fillStyle = fg
-      ctx.beginPath(); ctx.arc(tCx, helmCy + 2, 22, 0, Math.PI * 2); ctx.fill()
-
-      // Eyes (animated pupils)
-      const eyeOff = Math.sin(time * 0.8) * 1.5
-      for (const side of [-1, 1]) {
-        const ex = tCx + side * 9, ey = helmCy - 2
-        ctx.fillStyle = '#fff'
-        ctx.beginPath(); ctx.ellipse(ex, ey, 8, 9, 0, 0, Math.PI * 2); ctx.fill()
-        const ig = ctx.createRadialGradient(ex + eyeOff, ey, 0, ex, ey, 5.5)
-        ig.addColorStop(0, '#2ecc71'); ig.addColorStop(0.5, '#1a7a3e'); ig.addColorStop(1, '#0d4020')
-        ctx.fillStyle = ig
-        ctx.beginPath(); ctx.arc(ex + eyeOff, ey, 5, 0, Math.PI * 2); ctx.fill()
-        ctx.fillStyle = '#0a0a18'
-        ctx.beginPath(); ctx.arc(ex + eyeOff, ey, 2.8, 0, Math.PI * 2); ctx.fill()
-        ctx.fillStyle = 'rgba(255,255,255,0.9)'
-        ctx.beginPath(); ctx.arc(ex - 2.5, ey - 3.5, 2.5, 0, Math.PI * 2); ctx.fill()
-        ctx.fillStyle = 'rgba(255,255,255,0.4)'
-        ctx.beginPath(); ctx.arc(ex + 2, ey + 1.5, 1.2, 0, Math.PI * 2); ctx.fill()
-      }
-
-      // Nostrils + smile
-      ctx.fillStyle = '#145c2e'
-      ctx.beginPath(); ctx.arc(tCx - 2.5, helmCy + 7, 1.3, 0, Math.PI * 2); ctx.fill()
-      ctx.beginPath(); ctx.arc(tCx + 2.5, helmCy + 6.5, 1.3, 0, Math.PI * 2); ctx.fill()
-      ctx.strokeStyle = '#145c2e'; ctx.lineWidth = 1.5
-      ctx.beginPath(); ctx.arc(tCx, helmCy + 12, 8, 0.15, Math.PI - 0.15); ctx.stroke()
-
-      // Helmet reflections
-      ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 2
-      ctx.beginPath(); ctx.arc(tCx - 12, helmCy - 10, helmR * 0.7, -0.8, 0.4); ctx.stroke()
-      ctx.fillStyle = 'rgba(255,255,255,0.35)'
-      ctx.beginPath(); ctx.arc(tCx + 16, helmCy - 14, 2, 0, Math.PI * 2); ctx.fill()
-      ctx.beginPath(); ctx.arc(tCx + 12, helmCy - 20, 1.2, 0, Math.PI * 2); ctx.fill()
-
-      // Jetpack
-      for (const side of [-1, 1]) {
-        const jpx = tCx + side * 30, jpy = tBodyY - 4
-        ctx.fillStyle = '#6c7a80'
-        ctx.beginPath(); ctx.roundRect(jpx - 5, jpy - 16, 10, 28, 4); ctx.fill()
-        ctx.fillStyle = '#555'
-        ctx.beginPath(); ctx.roundRect(jpx - 4, jpy + 10, 8, 6, [0, 0, 3, 3]); ctx.fill()
-        ctx.globalAlpha = 0.3
-        const tg2 = ctx.createRadialGradient(jpx, jpy + 18, 0, jpx, jpy + 18, 8)
-        tg2.addColorStop(0, '#4ecdc4'); tg2.addColorStop(1, 'transparent')
-        ctx.fillStyle = tg2
-        ctx.beginPath(); ctx.arc(jpx, jpy + 18, 8, 0, Math.PI * 2); ctx.fill()
-        ctx.globalAlpha = 1
-      }
+      // ── Space Turtle (shared with cutscene) ──
+      drawSpaceTurtle(ctx, cx, h * 0.40 + floatY, 1, time)
 
       // ── Title ──
       const titleY = h * 0.15 + floatY * 0.5
