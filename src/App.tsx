@@ -9,29 +9,42 @@ import { Cutscene } from './ui/Cutscene'
 import { GameOverScreen } from './ui/GameOverScreen'
 
 // localStorage helpers
-const SAVE_KEY = 'bsw_chapter_progress'
+const SAVE_KEY = 'bsw_progress'
 
-function loadProgress(): number {
-  try {
-    const val = localStorage.getItem(SAVE_KEY)
-    if (val !== null) return Math.min(parseInt(val, 10) || 0, TOTAL_CHAPTERS - 1)
-  } catch { /* ignore */ }
-  return 0
+interface Progress {
+  chapter: number
+  stage: number
 }
 
-function saveProgress(chapter: number) {
+function loadProgress(): Progress {
+  try {
+    const val = localStorage.getItem(SAVE_KEY)
+    if (val) {
+      const parsed = JSON.parse(val)
+      return {
+        chapter: Math.min(parsed.chapter ?? 0, TOTAL_CHAPTERS - 1),
+        stage: parsed.stage ?? 0,
+      }
+    }
+  } catch { /* ignore */ }
+  return { chapter: 0, stage: 0 }
+}
+
+function saveProgress(chapter: number, stage: number) {
   try {
     const current = loadProgress()
-    if (chapter > current) localStorage.setItem(SAVE_KEY, String(chapter))
+    // Save if further in game (higher chapter, or same chapter + higher stage)
+    if (chapter > current.chapter || (chapter === current.chapter && stage > current.stage)) {
+      localStorage.setItem(SAVE_KEY, JSON.stringify({ chapter, stage }))
+    }
   } catch { /* ignore */ }
 }
 
 export default function App() {
   const [screen, setScreen] = useState<AppScreen>('title')
-  const [unlockedChapter, setUnlockedChapter] = useState(loadProgress)
+  const [progress, setProgress] = useState(loadProgress)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const engineRef = useRef<ReturnType<typeof createEngine> | null>(null)
-  // Use refs for chapter/stage to avoid re-triggering engine useEffect
   const chapterRef = useRef(0)
   const stageRef = useRef(0)
   // State only for UI screens that need re-render (cutscene)
@@ -56,12 +69,8 @@ export default function App() {
 
     const engine = createEngine(canvasRef.current, {
       onChapterClear(chapter) {
-        const newUnlocked = Math.min(chapter + 1, TOTAL_CHAPTERS - 1)
-        setUnlockedChapter(prev => {
-          const next = Math.max(prev, newUnlocked)
-          saveProgress(next)
-          return next
-        })
+        saveProgress(chapter + 1, 0)
+        setProgress(loadProgress())
         chapterRef.current = chapter
         setCutsceneChapter(chapter)
         setCutsceneType('epilogue')
@@ -71,8 +80,8 @@ export default function App() {
         setScreen('game-over')
       },
       onGameComplete() {
-        setUnlockedChapter(TOTAL_CHAPTERS - 1)
-        saveProgress(TOTAL_CHAPTERS - 1)
+        saveProgress(TOTAL_CHAPTERS - 1, 9)
+        setProgress(loadProgress())
         chapterRef.current = TOTAL_CHAPTERS - 1
         setCutsceneChapter(TOTAL_CHAPTERS - 1)
         setCutsceneType('epilogue')
@@ -81,6 +90,8 @@ export default function App() {
       onStageLoaded(chapter, stage) {
         chapterRef.current = chapter
         stageRef.current = stage
+        saveProgress(chapter, stage)
+        setProgress(loadProgress())
       },
     }, chapterRef.current, stageRef.current)
 
@@ -93,8 +104,8 @@ export default function App() {
   if (screen === 'title') {
     return (
       <TitleScreen
-        hasProgress={true}
-        onStart={() => startGame(0)}
+        hasProgress={progress.chapter > 0 || progress.stage > 0}
+        onStart={() => startGame(progress.chapter, progress.stage)}
         onChapterSelect={() => setScreen('chapter-select')}
       />
     )
@@ -103,8 +114,8 @@ export default function App() {
   if (screen === 'chapter-select') {
     return (
       <ChapterSelect
-        unlockedChapter={unlockedChapter}
-        onSelect={(ch) => startGame(ch)}
+        unlockedChapter={progress.chapter}
+        onSelect={(ch) => startGame(ch, ch === progress.chapter ? progress.stage : 0)}
         onBack={() => setScreen('title')}
       />
     )
