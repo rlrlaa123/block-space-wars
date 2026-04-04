@@ -89,77 +89,78 @@ function rgbStr(r: number, g: number, b: number, a = 1): string {
   return a < 1 ? `rgba(${r},${g},${b},${a})` : `rgb(${r},${g},${b})`
 }
 
-function lighten(hex: string, amt: number): string {
-  const [r, g, b] = hexRgb(hex)
-  return rgbStr(
-    Math.min(255, r + Math.round((255 - r) * amt)),
-    Math.min(255, g + Math.round((255 - g) * amt)),
-    Math.min(255, b + Math.round((255 - b) * amt)),
-  )
-}
-
-function darken(hex: string, amt: number): string {
-  const [r, g, b] = hexRgb(hex)
-  return rgbStr(Math.round(r * (1 - amt)), Math.round(g * (1 - amt)), Math.round(b * (1 - amt)))
-}
-
-// ── Shared 3D block drawing (used by bricks AND items) ──
+// ── Shared 3D block drawing (candy/gem style) ──
 
 function draw3DBlock(
   ctx: CanvasRenderingContext2D,
   x: number, y: number, w: number, h: number,
   baseColor: string, rad: number,
 ) {
-  const light = lighten(baseColor, 0.3)
-  const mid = baseColor
-  const dark = darken(baseColor, 0.35)
-  const vdark = darken(baseColor, 0.55)
+  const [br, bg, bb] = hexRgb(baseColor)
+  const edge = 3 // depth of 3D extrusion
 
-  // Drop shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.25)'
+  // 1) Outer shadow (ambient occlusion)
+  ctx.fillStyle = 'rgba(0,0,0,0.3)'
   ctx.beginPath()
-  ctx.roundRect(x + 1, y + 3, w, h, rad)
+  ctx.roundRect(x + 1, y + 2, w, h + 1, rad)
   ctx.fill()
 
-  // Bottom/right dark edge (3D depth)
-  ctx.fillStyle = vdark
+  // 2) Bottom face (dark extruded edge - gives strong 3D)
+  ctx.fillStyle = rgbStr(
+    Math.round(br * 0.35), Math.round(bg * 0.35), Math.round(bb * 0.35),
+  )
   ctx.beginPath()
-  ctx.roundRect(x, y, w, h, rad)
+  ctx.roundRect(x, y + edge, w, h - edge + 1, rad)
   ctx.fill()
 
-  // Main face (top-to-bottom gradient, strong contrast)
-  const faceGrad = ctx.createLinearGradient(x, y, x, y + h)
-  faceGrad.addColorStop(0, light)
-  faceGrad.addColorStop(0.15, mid)
-  faceGrad.addColorStop(0.85, dark)
-  faceGrad.addColorStop(1, vdark)
+  // 3) Right face edge
+  ctx.fillStyle = rgbStr(
+    Math.round(br * 0.45), Math.round(bg * 0.45), Math.round(bb * 0.45),
+  )
+  ctx.beginPath()
+  ctx.roundRect(x + 2, y + 1, w - 2, h - 1, rad)
+  ctx.fill()
+
+  // 4) Main face (center block, slightly inset)
+  const faceGrad = ctx.createLinearGradient(x, y, x, y + h - edge)
+  faceGrad.addColorStop(0, rgbStr(
+    Math.min(255, br + 60), Math.min(255, bg + 60), Math.min(255, bb + 60),
+  ))
+  faceGrad.addColorStop(0.35, baseColor)
+  faceGrad.addColorStop(1, rgbStr(
+    Math.round(br * 0.65), Math.round(bg * 0.65), Math.round(bb * 0.65),
+  ))
   ctx.fillStyle = faceGrad
   ctx.beginPath()
-  ctx.roundRect(x + 1, y, w - 2, h - 3, rad)
+  ctx.roundRect(x, y, w - 1, h - edge, rad)
   ctx.fill()
 
-  // Left edge highlight (side light)
-  ctx.fillStyle = 'rgba(255,255,255,0.12)'
+  // 5) Top-left specular highlight (makes it look shiny/glossy)
+  const specGrad = ctx.createRadialGradient(
+    x + w * 0.3, y + (h - edge) * 0.25, 0,
+    x + w * 0.3, y + (h - edge) * 0.25, w * 0.6,
+  )
+  specGrad.addColorStop(0, 'rgba(255,255,255,0.45)')
+  specGrad.addColorStop(0.4, 'rgba(255,255,255,0.1)')
+  specGrad.addColorStop(1, 'rgba(255,255,255,0)')
+  ctx.fillStyle = specGrad
   ctx.beginPath()
-  ctx.roundRect(x + 1, y + 1, 3, h - 5, [rad, 0, 0, rad])
+  ctx.roundRect(x + 1, y + 1, w - 3, (h - edge) * 0.6, [rad, rad, 0, 0])
   ctx.fill()
 
-  // Top gloss (curved highlight like candy/gem)
-  const glossGrad = ctx.createLinearGradient(x, y, x, y + h * 0.45)
-  glossGrad.addColorStop(0, 'rgba(255,255,255,0.35)')
-  glossGrad.addColorStop(0.5, 'rgba(255,255,255,0.08)')
-  glossGrad.addColorStop(1, 'rgba(255,255,255,0)')
-  ctx.fillStyle = glossGrad
+  // 6) Top edge bright line (rim light)
+  ctx.strokeStyle = `rgba(255,255,255,0.3)`
+  ctx.lineWidth = 1
   ctx.beginPath()
-  ctx.roundRect(x + 3, y + 1, w - 7, h * 0.45, [rad - 1, rad - 1, 0, 0])
-  ctx.fill()
+  ctx.moveTo(x + rad, y + 0.5)
+  ctx.lineTo(x + w - rad - 1, y + 0.5)
+  ctx.stroke()
 
-  // Bottom inner edge (catch light)
-  ctx.strokeStyle = 'rgba(255,255,255,0.06)'
-  ctx.lineWidth = 0.5
+  // 7) Left edge bright line
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)'
   ctx.beginPath()
-  ctx.moveTo(x + rad + 2, y + h - 3.5)
-  ctx.lineTo(x + w - rad - 2, y + h - 3.5)
+  ctx.moveTo(x + 0.5, y + rad)
+  ctx.lineTo(x + 0.5, y + h - edge - rad)
   ctx.stroke()
 }
 

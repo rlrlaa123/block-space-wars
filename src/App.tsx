@@ -47,6 +47,7 @@ export default function App() {
   const engineRef = useRef<ReturnType<typeof createEngine> | null>(null)
   const chapterRef = useRef(0)
   const stageRef = useRef(0)
+  const ballCountRef = useRef<number | undefined>(undefined)
   // State only for UI screens that need re-render (cutscene)
   const [cutsceneChapter, setCutsceneChapter] = useState(0)
   const [cutsceneType, setCutsceneType] = useState<'prologue' | 'epilogue'>('prologue')
@@ -74,6 +75,7 @@ export default function App() {
 
     const engine = createEngine(canvasRef.current, {
       onChapterClear(chapter) {
+        ballCountRef.current = engineRef.current?.getBallCount()
         saveProgress(chapter + 1, 0)
         setProgress(loadProgress())
         chapterRef.current = chapter
@@ -104,7 +106,7 @@ export default function App() {
         saveProgress(chapter, stage)
         setProgress(loadProgress())
       },
-    }, chapterRef.current, stageRef.current)
+    }, chapterRef.current, stageRef.current, ballCountRef.current)
 
     engineRef.current = engine
     return () => engine.destroy()

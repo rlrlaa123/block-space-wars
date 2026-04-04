@@ -35,6 +35,7 @@ export function createEngine(
   callbacks: EngineCallbacks,
   startChapter = 0,
   startStage = 0,
+  startBallCount?: number,
 ) {
   const ctx = canvas.getContext('2d')!
   const state: GameState = createInitialState()
@@ -42,6 +43,7 @@ export function createEngine(
 
   state.currentChapter = startChapter
   state.currentStage = startStage
+  if (startBallCount !== undefined) state.ballCount = startBallCount
 
   let accumulator = 0
   let lastTime = 0
@@ -462,6 +464,7 @@ export function createEngine(
       cleanupInput()
     },
     getState() { return state },
+    getBallCount() { return state.ballCount },
     loadStage,
     resize,
     retry() {
