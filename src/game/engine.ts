@@ -144,6 +144,14 @@ export function createEngine(
     const w = rect.width
     const h = rect.height
 
+    // Menu button (top-left, 8,8,36,28) — always available except during modals
+    if (x >= 8 && x <= 44 && y >= 8 && y <= 36 &&
+        state.phase !== 'game-over' && state.phase !== 'stage-clear') {
+      e.preventDefault()
+      callbacks.onMenu()
+      return
+    }
+
     if (state.phase === 'game-over' && gameOverAlpha > 0.8) {
       const modalW = w - 40
       const modalH = 260

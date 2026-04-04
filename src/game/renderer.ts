@@ -416,6 +416,26 @@ function drawHUD(ctx: CanvasRenderingContext2D, state: GameState, layout: Layout
   ctx.lineTo(w, 67.5)
   ctx.stroke()
 
+  // Menu button (top-left)
+  ctx.fillStyle = 'rgba(255,255,255,0.08)'
+  ctx.beginPath()
+  ctx.roundRect(8, 8, 36, 28, 6)
+  ctx.fill()
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)'
+  ctx.lineWidth = 0.5
+  ctx.beginPath()
+  ctx.roundRect(8, 8, 36, 28, 6)
+  ctx.stroke()
+  // Hamburger lines
+  ctx.strokeStyle = 'rgba(255,255,255,0.6)'
+  ctx.lineWidth = 1.5
+  for (const dy of [-5, 0, 5]) {
+    ctx.beginPath()
+    ctx.moveTo(16, 22 + dy)
+    ctx.lineTo(36, 22 + dy)
+    ctx.stroke()
+  }
+
   // Chapter + Stage label (centered)
   ctx.fillStyle = '#ffffff'
   ctx.font = 'bold 16px sans-serif'

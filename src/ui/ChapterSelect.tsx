@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { CHAPTERS, TOTAL_CHAPTERS, STAGES_PER_CHAPTER, STAR_COUNT, MAX_CANVAS_WIDTH } from '../game/constants'
+import { CHAPTERS, STAGES_PER_CHAPTER, STAR_COUNT, MAX_CANVAS_WIDTH } from '../game/constants'
 
 interface Props {
   unlockedChapter: number
@@ -9,10 +9,9 @@ interface Props {
 }
 
 export function ChapterSelect({ unlockedChapter, unlockedStage, onSelect, onBack }: Props) {
-  const [expandedChapter, setExpandedChapter] = useState<number | null>(null)
+  const [selectedChapter, setSelectedChapter] = useState(unlockedChapter)
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
-  // Animated starfield background
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -34,16 +33,13 @@ export function ChapterSelect({ unlockedChapter, unlockedStage, onSelect, onBack
 
     let raf = 0
     let time = 0
-
     function draw() {
       time += 0.016
-
       const grad = ctx.createLinearGradient(0, 0, 0, h)
       grad.addColorStop(0, '#050520')
       grad.addColorStop(1, '#0a0a2e')
       ctx.fillStyle = grad
       ctx.fillRect(0, 0, w, h)
-
       for (const star of stars) {
         star.y += star.speed * 0.016
         if (star.y > h) { star.y = -1; star.x = Math.random() * w }
@@ -60,14 +56,23 @@ export function ChapterSelect({ unlockedChapter, unlockedStage, onSelect, onBack
     return () => cancelAnimationFrame(raf)
   }, [])
 
+  const ch = CHAPTERS[selectedChapter]
+  const isCurrentChapter = selectedChapter === unlockedChapter
+  const maxStage = selectedChapter < unlockedChapter
+    ? STAGES_PER_CHAPTER - 1
+    : isCurrentChapter
+      ? unlockedStage
+      : -1
+
   const anim = `
-    @keyframes cardSlideIn {
-      from { opacity: 0; transform: translateY(16px); }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(12px); }
       to { opacity: 1; transform: translateY(0); }
     }
-    @keyframes headerFade {
-      from { opacity: 0; transform: translateY(-10px); }
-      to { opacity: 1; transform: translateY(0); }
+    @keyframes stagePopIn {
+      from { opacity: 0; transform: scale(0.8); }
+      to { opacity: 1; transform: scale(1); }
     }
   `
 
@@ -79,198 +84,200 @@ export function ChapterSelect({ unlockedChapter, unlockedStage, onSelect, onBack
         style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
       />
 
-      {/* Content overlay */}
       <div style={{
         position: 'relative', zIndex: 1,
         width: '100%', height: '100%',
         display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center',
-        padding: 20, boxSizing: 'border-box',
+        alignItems: 'center',
+        padding: '0 20px', boxSizing: 'border-box',
       }}>
-        {/* Header */}
-        <div style={{
-          marginBottom: 24,
-          animation: 'headerFade 0.5s ease-out',
+        {/* Back button (top-left) */}
+        <button onClick={onBack} style={{
+          position: 'absolute', top: 16, left: 16,
+          padding: '8px 16px', fontSize: 13,
+          background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: 50, cursor: 'pointer', fontFamily: 'sans-serif',
+          zIndex: 2, minHeight: 36, minWidth: 44,
         }}>
-          <h2 style={{
-            color: '#fff', fontFamily: 'monospace', fontSize: 22,
-            margin: 0, letterSpacing: 2, textAlign: 'center',
-          }}>
-            CHAPTER SELECT
-          </h2>
+          ← 뒤로
+        </button>
+
+        {/* ── Chapter tabs (horizontal scroll) ── */}
+        <div style={{
+          marginTop: 60, width: '100%', maxWidth: 380,
+          animation: 'fadeIn 0.4s ease-out',
+        }}>
           <div style={{
-            width: 60, height: 2, margin: '10px auto 0',
-            background: 'linear-gradient(90deg, transparent, #4ecdc4, transparent)',
-          }} />
-        </div>
-
-        {/* Chapter cards */}
-        <div style={{
-          display: 'flex', flexDirection: 'column', gap: 10,
-          width: '100%', maxWidth: 340,
-          overflowY: 'auto', maxHeight: '65vh',
-        }}>
-          {CHAPTERS.map((ch, i) => {
-            const locked = i > unlockedChapter
-            const isCurrent = i === unlockedChapter
-            const isExpanded = expandedChapter === i
-            const delay = i * 0.08
-            const maxStage = isCurrent ? unlockedStage : (locked ? -1 : STAGES_PER_CHAPTER - 1)
-
-            return (
-              <div key={i} style={{ animation: `cardSlideIn 0.4s ease-out ${delay}s both` }}>
-                {/* Chapter header */}
+            display: 'flex', gap: 0,
+            borderRadius: 12,
+            overflow: 'hidden',
+            border: '1px solid rgba(255,255,255,0.08)',
+          }}>
+            {CHAPTERS.map((c, i) => {
+              const locked = i > unlockedChapter
+              const active = i === selectedChapter
+              return (
                 <button
-                  onClick={() => !locked && setExpandedChapter(isExpanded ? null : i)}
+                  key={i}
+                  onClick={() => !locked && setSelectedChapter(i)}
                   disabled={locked}
                   style={{
-                    width: '100%',
-                    position: 'relative',
-                    padding: '14px 18px',
-                    fontSize: 15,
-                    fontFamily: 'sans-serif',
-                    fontWeight: 600,
-                    background: locked
-                      ? 'rgba(255,255,255,0.03)'
-                      : `linear-gradient(135deg, ${hexToRgba(ch.brickColor, 0.15)} 0%, ${hexToRgba(ch.brickColor, 0.06)} 100%)`,
-                    color: locked ? 'rgba(255,255,255,0.25)' : '#fff',
-                    border: locked
-                      ? '1px solid rgba(255,255,255,0.06)'
-                      : isCurrent
-                        ? `1.5px solid ${hexToRgba(ch.accentColor, 0.6)}`
-                        : `1px solid ${hexToRgba(ch.brickColor, 0.25)}`,
-                    borderRadius: isExpanded ? '12px 12px 0 0' : 12,
+                    flex: 1,
+                    padding: '12px 4px',
+                    fontSize: 11,
+                    fontFamily: 'monospace',
+                    fontWeight: active ? 700 : 500,
+                    background: active
+                      ? `linear-gradient(180deg, ${hexToRgba(c.brickColor, 0.3)}, ${hexToRgba(c.brickColor, 0.1)})`
+                      : locked ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.04)',
+                    color: locked ? 'rgba(255,255,255,0.15)' : active ? '#fff' : 'rgba(255,255,255,0.5)',
+                    border: 'none',
+                    borderBottom: active ? `2px solid ${c.brickColor}` : '2px solid transparent',
                     cursor: locked ? 'not-allowed' : 'pointer',
-                    textAlign: 'left',
-                    minHeight: 52,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    transition: 'border-radius 0.2s',
-                    backdropFilter: locked ? 'none' : 'blur(8px)',
+                    transition: 'all 0.2s',
+                    minHeight: 44,
                   }}
                 >
-                  {/* Badge */}
-                  <div style={{
-                    width: 36, height: 36, borderRadius: 8,
-                    background: locked ? 'rgba(255,255,255,0.05)' : `linear-gradient(135deg, ${ch.brickColor}, ${ch.accentColor})`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontFamily: 'monospace', fontSize: 14, fontWeight: 'bold',
-                    color: locked ? 'rgba(255,255,255,0.2)' : '#fff',
-                    flexShrink: 0,
-                    boxShadow: locked ? 'none' : `0 2px 8px ${hexToRgba(ch.brickColor, 0.3)}`,
-                  }}>
-                    {locked ? '🔒' : i + 1}
-                  </div>
-
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{
-                      fontSize: 10, fontFamily: 'monospace',
-                      color: locked ? 'rgba(255,255,255,0.15)' : hexToRgba(ch.brickColor, 0.8),
-                      marginBottom: 2, letterSpacing: 1,
-                    }}>
-                      CHAPTER {i + 1}
-                    </div>
-                    <div style={{
-                      fontSize: 15, fontWeight: 600,
-                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                    }}>
-                      {ch.name}
-                    </div>
-                  </div>
-
-                  {/* Expand arrow or status */}
-                  {!locked && (
-                    <div style={{
-                      fontSize: 12, flexShrink: 0, color: 'rgba(255,255,255,0.4)',
-                      transition: 'transform 0.2s',
-                      transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)',
-                    }}>
-                      ▼
-                    </div>
-                  )}
+                  {locked ? '🔒' : `Ch.${i + 1}`}
                 </button>
+              )
+            })}
+          </div>
+        </div>
 
-                {/* Stage grid (expanded) */}
-                {isExpanded && !locked && (
-                  <div style={{
-                    background: 'rgba(255,255,255,0.03)',
-                    border: `1px solid ${hexToRgba(ch.brickColor, 0.15)}`,
-                    borderTop: 'none',
-                    borderRadius: '0 0 12px 12px',
-                    padding: '12px 14px',
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(5, 1fr)',
-                    gap: 8,
-                  }}>
-                    {Array.from({ length: STAGES_PER_CHAPTER }, (_, s) => {
-                      const stageLocked = s > maxStage
-                      const isStageCurrent = isCurrent && s === unlockedStage
-                      return (
-                        <button
-                          key={s}
-                          onClick={() => !stageLocked && onSelect(i, s)}
-                          disabled={stageLocked}
-                          style={{
-                            width: '100%',
-                            aspectRatio: '1',
-                            fontSize: 13,
-                            fontFamily: 'monospace',
-                            fontWeight: 600,
-                            background: stageLocked
-                              ? 'rgba(255,255,255,0.03)'
-                              : isStageCurrent
-                                ? `linear-gradient(135deg, ${ch.accentColor}, ${ch.brickColor})`
-                                : `rgba(255,255,255,0.06)`,
-                            color: stageLocked ? 'rgba(255,255,255,0.15)' : '#fff',
-                            border: isStageCurrent
-                              ? `1.5px solid ${ch.accentColor}`
-                              : stageLocked
-                                ? '1px solid rgba(255,255,255,0.04)'
-                                : `1px solid ${hexToRgba(ch.brickColor, 0.2)}`,
-                            borderRadius: 8,
-                            cursor: stageLocked ? 'not-allowed' : 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            minHeight: 40,
-                            minWidth: 40,
-                            transition: 'background 0.15s',
-                          }}
-                        >
-                          {stageLocked ? '🔒' : s + 1}
-                        </button>
-                      )
-                    })}
-                  </div>
-                )}
+        {/* ── Selected chapter info ── */}
+        <div key={selectedChapter} style={{
+          marginTop: 24, textAlign: 'center',
+          animation: 'slideUp 0.3s ease-out',
+        }}>
+          {/* Chapter badge */}
+          <div style={{
+            width: 56, height: 56, borderRadius: 14,
+            background: `linear-gradient(135deg, ${ch.brickColor}, ${ch.accentColor})`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto 12px',
+            fontFamily: 'monospace', fontSize: 22, fontWeight: 'bold', color: '#fff',
+            boxShadow: `0 4px 20px ${hexToRgba(ch.brickColor, 0.4)}`,
+          }}>
+            {selectedChapter + 1}
+          </div>
+
+          <div style={{
+            fontSize: 10, fontFamily: 'monospace', letterSpacing: 2,
+            color: hexToRgba(ch.brickColor, 0.8), marginBottom: 4,
+          }}>
+            CHAPTER {selectedChapter + 1}
+          </div>
+          <div style={{
+            fontSize: 20, fontWeight: 700, color: '#fff',
+            fontFamily: 'sans-serif', marginBottom: 4,
+          }}>
+            {ch.name}
+          </div>
+
+          {/* Progress bar for this chapter */}
+          {selectedChapter <= unlockedChapter && (
+            <div style={{
+              marginTop: 8, display: 'flex', alignItems: 'center',
+              justifyContent: 'center', gap: 8,
+            }}>
+              <div style={{
+                width: 120, height: 4, borderRadius: 2,
+                background: 'rgba(255,255,255,0.1)',
+                overflow: 'hidden',
+              }}>
+                <div style={{
+                  width: `${((maxStage + 1) / STAGES_PER_CHAPTER) * 100}%`,
+                  height: '100%', borderRadius: 2,
+                  background: `linear-gradient(90deg, ${ch.brickColor}, ${ch.accentColor})`,
+                  transition: 'width 0.3s',
+                }} />
               </div>
+              <span style={{
+                fontSize: 11, fontFamily: 'monospace',
+                color: 'rgba(255,255,255,0.4)',
+              }}>
+                {maxStage + 1}/{STAGES_PER_CHAPTER}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* ── Stage grid ── */}
+        <div key={`stages-${selectedChapter}`} style={{
+          marginTop: 28, width: '100%', maxWidth: 300,
+          display: 'grid',
+          gridTemplateColumns: 'repeat(5, 1fr)',
+          gap: 10,
+          animation: 'slideUp 0.35s ease-out',
+        }}>
+          {Array.from({ length: STAGES_PER_CHAPTER }, (_, s) => {
+            const locked = s > maxStage
+            const isCurrent = isCurrentChapter && s === unlockedStage
+            const cleared = s < maxStage || (s <= maxStage && !isCurrentChapter)
+
+            return (
+              <button
+                key={s}
+                onClick={() => !locked && onSelect(selectedChapter, s)}
+                disabled={locked}
+                style={{
+                  aspectRatio: '1',
+                  fontSize: 15,
+                  fontFamily: 'monospace',
+                  fontWeight: 700,
+                  background: locked
+                    ? 'rgba(255,255,255,0.03)'
+                    : isCurrent
+                      ? `linear-gradient(135deg, ${ch.accentColor}, ${ch.brickColor})`
+                      : cleared
+                        ? `linear-gradient(135deg, ${hexToRgba(ch.brickColor, 0.2)}, ${hexToRgba(ch.brickColor, 0.08)})`
+                        : 'rgba(255,255,255,0.05)',
+                  color: locked ? 'rgba(255,255,255,0.12)' : '#fff',
+                  border: isCurrent
+                    ? `2px solid ${ch.accentColor}`
+                    : locked
+                      ? '1px solid rgba(255,255,255,0.04)'
+                      : `1px solid ${hexToRgba(ch.brickColor, 0.2)}`,
+                  borderRadius: 12,
+                  cursor: locked ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 2,
+                  minHeight: 48,
+                  boxShadow: isCurrent ? `0 2px 12px ${hexToRgba(ch.accentColor, 0.3)}` : 'none',
+                  transition: 'transform 0.1s, background 0.15s',
+                  animation: `stagePopIn 0.25s ease-out ${s * 0.03}s both`,
+                }}
+              >
+                {locked ? (
+                  <span style={{ fontSize: 14 }}>🔒</span>
+                ) : (
+                  <>
+                    <span>{s + 1}</span>
+                    {cleared && !isCurrent && (
+                      <span style={{ fontSize: 8, color: '#4ecdc4', marginTop: -2 }}>★</span>
+                    )}
+                  </>
+                )}
+              </button>
             )
           })}
         </div>
 
-        {/* Progress indicator */}
+        {/* ── Chapter navigation hint ── */}
         <div style={{
-          marginTop: 20,
-          fontSize: 12, fontFamily: 'monospace',
-          color: 'rgba(255,255,255,0.3)',
-          animation: 'headerFade 0.5s ease-out 0.5s both',
+          marginTop: 20, fontSize: 11, fontFamily: 'monospace',
+          color: 'rgba(255,255,255,0.2)',
+          animation: 'fadeIn 0.5s ease-out 0.3s both',
         }}>
-          {unlockedChapter >= TOTAL_CHAPTERS - 1 ? 'ALL CLEARED' : `${unlockedChapter + 1} / ${TOTAL_CHAPTERS}`}
+          {selectedChapter < unlockedChapter && `${STAGES_PER_CHAPTER}/${STAGES_PER_CHAPTER} CLEARED`}
+          {selectedChapter === unlockedChapter && `STAGE ${unlockedStage + 1} IN PROGRESS`}
+          {selectedChapter > unlockedChapter && 'LOCKED'}
         </div>
-
-        {/* Back button */}
-        <button onClick={onBack} style={{
-          marginTop: 20, padding: '10px 28px', fontSize: 13,
-          background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.45)',
-          border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: 50, cursor: 'pointer', fontFamily: 'sans-serif',
-          letterSpacing: 0.5,
-          animation: 'headerFade 0.5s ease-out 0.6s both',
-          transition: 'color 0.2s, border-color 0.2s',
-        }}>
-          돌아가기
-        </button>
       </div>
     </div>
   )
