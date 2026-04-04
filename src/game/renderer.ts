@@ -177,7 +177,34 @@ function drawItem(ctx: CanvasRenderingContext2D, item: Item, layout: LayoutInfo)
       ctx.font = 'bold 10px monospace'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
-      ctx.fillText('B', x, y)
+      ctx.fillText('💥', x, y - 1)
+      break
+    case 'laser':
+      ctx.fillStyle = '#3498db'
+      ctx.fill()
+      ctx.fillStyle = '#fff'
+      ctx.font = '10px monospace'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText('⚡', x, y - 1)
+      break
+    case 'multiplier':
+      ctx.fillStyle = '#f1c40f'
+      ctx.fill()
+      ctx.fillStyle = '#fff'
+      ctx.font = 'bold 10px monospace'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText('×3', x, y)
+      break
+    case 'pierce':
+      ctx.fillStyle = '#9b59b6'
+      ctx.fill()
+      ctx.fillStyle = '#fff'
+      ctx.font = '10px monospace'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText('◆', x, y)
       break
     default:
       ctx.fillStyle = '#f1c40f'
@@ -351,6 +378,7 @@ export function render(
   time: number,
   gameOverAlpha: number,
   bgFlashAlpha: number,
+  timeScale: number,
 ) {
   const { canvasW, canvasH } = layout
 
@@ -422,6 +450,15 @@ export function render(
   drawLaunchPos(ctx, state, layout)
   if (state.phase === 'firing') drawRecallButton(ctx, layout)
   drawHUD(ctx, state, layout, chapterName)
+  // Speed indicator
+  if (timeScale > 1 && state.phase === 'firing') {
+    const label = timeScale >= 4 ? '⏩×4' : '⏩×2'
+    ctx.fillStyle = 'rgba(255, 200, 50, 0.8)'
+    ctx.font = 'bold 16px sans-serif'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(label, canvasW / 2, canvasH * 0.05 + 30)
+  }
   renderComboTexts(ctx, canvasW)
   renderConfetti(ctx)
 

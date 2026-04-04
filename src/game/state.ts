@@ -187,6 +187,15 @@ export function generateNewRow(state: GameState): { bricks: Brick[], items: Item
     })
   }
 
+  // Powerup item (20% chance, from chapter 2+)
+  const freeColsAfterBall = freeCols.filter(c => !items.some(i => i.col === c))
+  if (freeColsAfterBall.length > 0 && state.currentChapter >= 1 && Math.random() < 0.2) {
+    const col = freeColsAfterBall[Math.floor(Math.random() * freeColsAfterBall.length)]
+    const powerTypes: ('bomb' | 'laser' | 'multiplier' | 'pierce')[] = ['bomb', 'laser', 'multiplier', 'pierce']
+    const type = powerTypes[Math.floor(Math.random() * powerTypes.length)]
+    items.push({ row: 0, col, type, collected: false })
+  }
+
   return { bricks, items }
 }
 

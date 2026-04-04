@@ -1,7 +1,7 @@
 // ── Core game types ──
 
 export type BrickType = 'basic' | 'gravity-well' | 'shield' | 'splitter'
-export type ItemType = 'ball' | 'bomb' | 'power-shot' | 'wide-shot'
+export type ItemType = 'ball' | 'bomb' | 'laser' | 'multiplier' | 'pierce'
 
 export type GamePhase =
   | 'idle'

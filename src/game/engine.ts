@@ -18,7 +18,7 @@ import { hapticLight, hapticMedium, hapticHeavy } from '../utils/haptic'
 import { generateStage } from '../stages/generator'
 import {
   CHAPTERS, FIXED_DT, STAGE_CLEAR_DELAY, GAME_OVER_FADE_DURATION,
-  BALL_RADIUS, MAX_BALLS,
+  BALL_RADIUS, BALL_SPEED, MAX_BALLS,
 } from './constants'
 
 export interface EngineCallbacks {
@@ -143,7 +143,7 @@ export function createEngine(
     render(
       ctx, state, layout, shake,
       chapter.bgColor, chapter.brickColor, chapter.accentColor,
-      chapter.name, gameTime, gameOverAlpha, bgFlashAlpha,
+      chapter.name, gameTime, gameOverAlpha, bgFlashAlpha, timeScale,
     )
 
     requestAnimationFrame(loop)
@@ -248,10 +248,91 @@ export function createEngine(
           const dy = ball.pos.y - iy
           if (dx * dx + dy * dy < (itemRadius + BALL_RADIUS) * (itemRadius + BALL_RADIUS)) {
             item.collected = true
-            const bonus = item.bonusAmount ?? 1
-            state.ballCount = Math.min(state.ballCount + bonus, MAX_BALLS)
-            spawnCollectBurst(ix, iy, '#4caf50')
             hapticLight()
+
+            switch (item.type) {
+              case 'ball': {
+                const bonus = item.bonusAmount ?? 1
+                state.ballCount = Math.min(state.ballCount + bonus, MAX_BALLS)
+                spawnCollectBurst(ix, iy, '#4caf50')
+                break
+              }
+              case 'bomb': {
+                // AoE: destroy all bricks within 2 cells
+                spawnCollectBurst(ix, iy, '#e74c3c')
+                hapticHeavy()
+                for (const brick of state.bricks) {
+                  if (brick.dead) continue
+                  if (Math.abs(brick.row - item.row) <= 2 && Math.abs(brick.col - item.col) <= 2) {
+                    brick.hp = 0
+                    brick.dead = true
+                    const rect = brickRect(brick, layout)
+                    spawnBrickBreak(rect.x, rect.y, rect.w, rect.h, chapter.accentColor)
+                    spawnDestroyGlow(rect.x, rect.y, rect.w, rect.h, chapter.accentColor)
+                  }
+                }
+                triggerShake(shake, 8)
+                bgFlashAlpha = 0.2
+                break
+              }
+              case 'laser': {
+                // Horizontal + vertical beam: destroy all bricks in same row and col
+                spawnCollectBurst(ix, iy, '#3498db')
+                hapticMedium()
+                for (const brick of state.bricks) {
+                  if (brick.dead) continue
+                  if (brick.row === item.row || brick.col === item.col) {
+                    brick.hp = 0
+                    brick.dead = true
+                    const rect = brickRect(brick, layout)
+                    spawnBrickBreak(rect.x, rect.y, rect.w, rect.h, '#3498db')
+                    spawnDestroyGlow(rect.x, rect.y, rect.w, rect.h, '#3498db')
+                  }
+                }
+                triggerShake(shake, 6)
+                bgFlashAlpha = 0.15
+                break
+              }
+              case 'multiplier': {
+                // Spawn 3 extra balls at the collection point
+                spawnCollectBurst(ix, iy, '#f1c40f')
+                for (let m = 0; m < 3; m++) {
+                  const angle = (Math.PI / 4) + (Math.PI / 2) * (m / 2)
+                  state.balls.push({
+                    pos: { x: ix, y: iy },
+                    vel: { x: Math.cos(angle) * BALL_SPEED, y: -Math.sin(angle) * BALL_SPEED },
+                    radius: BALL_RADIUS,
+                    landed: false,
+                    trail: [],
+                  })
+                }
+                break
+              }
+              case 'pierce': {
+                // Make the collecting ball pierce through bricks for 3 seconds
+                // (simplified: deal 999 damage on next 5 brick hits)
+                spawnCollectBurst(ix, iy, '#9b59b6')
+                // Mark this ball as piercing by boosting its velocity slightly
+                // and temporarily making it ignore brick collision reflection
+                // Simple approach: destroy 5 nearest bricks instantly
+                const aliveBricks = state.bricks
+                  .filter(b => !b.dead)
+                  .map(b => ({
+                    brick: b,
+                    dist: Math.abs(b.row - item.row) + Math.abs(b.col - item.col),
+                  }))
+                  .sort((a, b) => a.dist - b.dist)
+                  .slice(0, 5)
+                for (const { brick } of aliveBricks) {
+                  brick.hp = 0
+                  brick.dead = true
+                  const rect = brickRect(brick, layout)
+                  spawnBrickBreak(rect.x, rect.y, rect.w, rect.h, '#9b59b6')
+                }
+                triggerShake(shake, 4)
+                break
+              }
+            }
             break
           }
         }
