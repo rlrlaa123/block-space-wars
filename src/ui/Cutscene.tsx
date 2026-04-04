@@ -71,149 +71,216 @@ function CharacterSprite({ character, accentColor }: { character: string; accent
 }
 
 function drawTurtle(ctx: CanvasRenderingContext2D, cx: number, cy: number) {
-  const shellR = 44
+  // 3/4 view turtle — shell center-right, head peeking out left
+  const shellCx = cx + 6
+  const shellCy = cy + 8
+  const shellRx = 48  // wider
+  const shellRy = 38  // shorter (oval, not circle)
 
   // Shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.25)'
+  ctx.fillStyle = 'rgba(0,0,0,0.2)'
   ctx.beginPath()
-  ctx.ellipse(cx, cy + shellR + 14, shellR * 0.8, 7, 0, 0, Math.PI * 2)
+  ctx.ellipse(shellCx, shellCy + shellRy + 8, shellRx * 0.7, 6, 0, 0, Math.PI * 2)
   ctx.fill()
 
-  // Legs with gradient
-  for (const [lx, ly] of [[-28, 22], [28, 22], [-24, -22], [24, -22]] as [number, number][]) {
-    const lg = ctx.createRadialGradient(cx + lx, cy + ly, 0, cx + lx, cy + ly, 10)
+  // Tail (behind, right side)
+  ctx.fillStyle = '#1fa855'
+  ctx.beginPath()
+  ctx.ellipse(shellCx + shellRx - 6, shellCy + 10, 8, 5, 0.5, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Back legs
+  for (const [ox, oy, rot] of [[28, 20, 0.3], [-20, 20, -0.2]] as [number, number, number][]) {
+    const lg = ctx.createRadialGradient(shellCx + ox, shellCy + oy, 0, shellCx + ox, shellCy + oy, 11)
     lg.addColorStop(0, '#3ddb85')
     lg.addColorStop(1, '#1a8c48')
     ctx.fillStyle = lg
     ctx.beginPath()
-    ctx.ellipse(cx + lx, cy + ly, 9, 6, lx > 0 ? 0.3 : -0.3, 0, Math.PI * 2)
+    ctx.ellipse(shellCx + ox, shellCy + oy, 10, 7, rot, 0, Math.PI * 2)
     ctx.fill()
+    // Toes
+    ctx.fillStyle = '#1a8c48'
+    for (let t = -1; t <= 1; t++) {
+      ctx.beginPath()
+      ctx.arc(shellCx + ox + Math.cos(rot) * 9 + t * 3, shellCy + oy + Math.sin(rot) * 9, 2, 0, Math.PI * 2)
+      ctx.fill()
+    }
   }
 
-  // Tail
-  const tg = ctx.createRadialGradient(cx, cy + shellR + 4, 0, cx, cy + shellR + 4, 7)
-  tg.addColorStop(0, '#3ddb85')
-  tg.addColorStop(1, '#1a8c48')
-  ctx.fillStyle = tg
-  ctx.beginPath()
-  ctx.ellipse(cx, cy + shellR + 4, 6, 4, 0, 0, Math.PI * 2)
-  ctx.fill()
+  // Front legs
+  for (const [ox, oy, rot] of [[24, -16, 0.2], [-24, -14, -0.3]] as [number, number, number][]) {
+    const lg = ctx.createRadialGradient(shellCx + ox, shellCy + oy, 0, shellCx + ox, shellCy + oy, 11)
+    lg.addColorStop(0, '#3ddb85')
+    lg.addColorStop(1, '#1a8c48')
+    ctx.fillStyle = lg
+    ctx.beginPath()
+    ctx.ellipse(shellCx + ox, shellCy + oy, 10, 7, rot, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.fillStyle = '#1a8c48'
+    for (let t = -1; t <= 1; t++) {
+      ctx.beginPath()
+      ctx.arc(shellCx + ox + Math.cos(rot) * 9 + t * 3, shellCy + oy + Math.sin(rot) * 9, 2, 0, Math.PI * 2)
+      ctx.fill()
+    }
+  }
 
-  // Shell - outer ring (dark rim)
+  // Shell dark rim
   ctx.fillStyle = '#14753c'
   ctx.beginPath()
-  ctx.arc(cx, cy, shellR + 3, 0, Math.PI * 2)
+  ctx.ellipse(shellCx, shellCy, shellRx + 3, shellRy + 3, 0, 0, Math.PI * 2)
   ctx.fill()
 
-  // Shell main
-  const shellGrad = ctx.createRadialGradient(cx - 8, cy - 10, 0, cx, cy, shellR)
+  // Shell body
+  const shellGrad = ctx.createRadialGradient(shellCx - 10, shellCy - 12, 0, shellCx, shellCy, shellRx)
   shellGrad.addColorStop(0, '#5eebb0')
-  shellGrad.addColorStop(0.4, '#2ecc71')
-  shellGrad.addColorStop(0.8, '#1fa855')
+  shellGrad.addColorStop(0.35, '#2ecc71')
+  shellGrad.addColorStop(0.75, '#1fa855')
   shellGrad.addColorStop(1, '#14753c')
   ctx.fillStyle = shellGrad
   ctx.beginPath()
-  ctx.arc(cx, cy, shellR, 0, Math.PI * 2)
+  ctx.ellipse(shellCx, shellCy, shellRx, shellRy, 0, 0, Math.PI * 2)
   ctx.fill()
 
-  // Shell hexagonal pattern
+  // Shell dome highlight (top half brighter — 3D dome effect)
+  const domeGrad = ctx.createLinearGradient(shellCx, shellCy - shellRy, shellCx, shellCy + shellRy * 0.3)
+  domeGrad.addColorStop(0, 'rgba(255,255,255,0.2)')
+  domeGrad.addColorStop(0.5, 'rgba(255,255,255,0.05)')
+  domeGrad.addColorStop(1, 'rgba(0,0,0,0)')
+  ctx.fillStyle = domeGrad
+  ctx.beginPath()
+  ctx.ellipse(shellCx, shellCy, shellRx - 2, shellRy - 2, 0, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Shell pattern — hex grid with filled segments
+  ctx.save()
+  ctx.beginPath()
+  ctx.ellipse(shellCx, shellCy, shellRx - 3, shellRy - 3, 0, 0, Math.PI * 2)
+  ctx.clip()
+
+  // Center pentagon
   ctx.strokeStyle = 'rgba(255,255,255,0.12)'
   ctx.lineWidth = 1.5
-  // Center hex
   ctx.beginPath()
-  for (let i = 0; i < 6; i++) {
-    const a = (i * Math.PI) / 3
-    const px = cx + Math.cos(a) * shellR * 0.35
-    const py = cy + Math.sin(a) * shellR * 0.35
+  for (let i = 0; i < 5; i++) {
+    const a = (i * Math.PI * 2) / 5 - Math.PI / 2
+    const px = shellCx + Math.cos(a) * 14
+    const py = shellCy + Math.sin(a) * 11
     i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py)
   }
   ctx.closePath()
   ctx.stroke()
-  // Outer hex segments
-  for (let i = 0; i < 6; i++) {
-    const a = (i * Math.PI) / 3
-    const na = ((i + 1) * Math.PI) / 3
-    const ix = cx + Math.cos(a) * shellR * 0.35
-    const iy = cy + Math.sin(a) * shellR * 0.35
-    const ox = cx + Math.cos(a) * shellR * 0.85
-    const oy = cy + Math.sin(a) * shellR * 0.85
-    const nix = cx + Math.cos(na) * shellR * 0.35
-    const niy = cy + Math.sin(na) * shellR * 0.35
-    const nox = cx + Math.cos(na) * shellR * 0.85
-    const noy = cy + Math.sin(na) * shellR * 0.85
-    ctx.beginPath()
-    ctx.moveTo(ix, iy); ctx.lineTo(ox, oy)
-    ctx.lineTo(nox, noy); ctx.lineTo(nix, niy)
-    ctx.closePath()
-    ctx.stroke()
-  }
+  // Fill center slightly darker
+  ctx.fillStyle = 'rgba(0,80,40,0.1)'
+  ctx.fill()
 
-  // Shell specular highlight
-  const shellSpec = ctx.createRadialGradient(cx - 10, cy - 14, 0, cx - 10, cy - 14, shellR * 0.5)
-  shellSpec.addColorStop(0, 'rgba(255,255,255,0.25)')
-  shellSpec.addColorStop(1, 'rgba(255,255,255,0)')
-  ctx.fillStyle = shellSpec
+  // Radiating segments
+  for (let i = 0; i < 5; i++) {
+    const a = (i * Math.PI * 2) / 5 - Math.PI / 2
+    const na = ((i + 1) * Math.PI * 2) / 5 - Math.PI / 2
+    const inR = 14
+    const outR = 40
+    ctx.strokeStyle = 'rgba(255,255,255,0.1)'
+    ctx.beginPath()
+    ctx.moveTo(shellCx + Math.cos(a) * inR, shellCy + Math.sin(a) * (inR * 0.78))
+    ctx.lineTo(shellCx + Math.cos(a) * outR, shellCy + Math.sin(a) * (outR * 0.78))
+    ctx.stroke()
+    // Fill alternating segments lightly
+    if (i % 2 === 0) {
+      ctx.fillStyle = 'rgba(0,80,40,0.06)'
+      ctx.beginPath()
+      ctx.moveTo(shellCx + Math.cos(a) * inR, shellCy + Math.sin(a) * (inR * 0.78))
+      ctx.lineTo(shellCx + Math.cos(a) * outR, shellCy + Math.sin(a) * (outR * 0.78))
+      ctx.lineTo(shellCx + Math.cos(na) * outR, shellCy + Math.sin(na) * (outR * 0.78))
+      ctx.lineTo(shellCx + Math.cos(na) * inR, shellCy + Math.sin(na) * (inR * 0.78))
+      ctx.closePath()
+      ctx.fill()
+    }
+  }
+  ctx.restore()
+
+  // Shell specular
+  const specGrad = ctx.createRadialGradient(shellCx - 14, shellCy - 16, 0, shellCx - 14, shellCy - 16, shellRx * 0.45)
+  specGrad.addColorStop(0, 'rgba(255,255,255,0.3)')
+  specGrad.addColorStop(1, 'rgba(255,255,255,0)')
+  ctx.fillStyle = specGrad
   ctx.beginPath()
-  ctx.arc(cx, cy, shellR, 0, Math.PI * 2)
+  ctx.ellipse(shellCx, shellCy, shellRx, shellRy, 0, 0, Math.PI * 2)
+  ctx.fill()
+
+  // ── Head (extends left from shell, slightly up) ──
+  const headCx = shellCx - shellRx + 8
+  const headCy = shellCy - 14
+  const headR = 20
+
+  // Neck (connects head to shell)
+  const neckGrad = ctx.createLinearGradient(headCx + headR, headCy, shellCx - shellRx + 20, shellCy - 8)
+  neckGrad.addColorStop(0, '#2ecc71')
+  neckGrad.addColorStop(1, '#1fa855')
+  ctx.fillStyle = neckGrad
+  ctx.beginPath()
+  ctx.moveTo(headCx + 10, headCy + 10)
+  ctx.quadraticCurveTo(headCx + headR + 8, headCy + 14, shellCx - shellRx + 16, shellCy + 2)
+  ctx.quadraticCurveTo(shellCx - shellRx + 12, shellCy - 14, headCx + 12, headCy - 6)
+  ctx.closePath()
   ctx.fill()
 
   // Head
-  const headY = cy - shellR - 14
-  const headR = 18
-  // Neck
-  ctx.fillStyle = '#27ae60'
-  ctx.beginPath()
-  ctx.moveTo(cx - 10, cy - shellR + 2)
-  ctx.quadraticCurveTo(cx - 12, headY + headR, cx - headR + 2, headY + 4)
-  ctx.lineTo(cx + headR - 2, headY + 4)
-  ctx.quadraticCurveTo(cx + 12, headY + headR, cx + 10, cy - shellR + 2)
-  ctx.fill()
-
-  const headGrad = ctx.createRadialGradient(cx - 3, headY - 4, 0, cx, headY, headR)
+  const headGrad = ctx.createRadialGradient(headCx - 3, headCy - 4, 0, headCx, headCy, headR)
   headGrad.addColorStop(0, '#4ceb9a')
-  headGrad.addColorStop(0.6, '#2ecc71')
+  headGrad.addColorStop(0.5, '#2ecc71')
   headGrad.addColorStop(1, '#1a9c54')
   ctx.fillStyle = headGrad
   ctx.beginPath()
-  ctx.arc(cx, headY, headR, 0, Math.PI * 2)
+  ctx.arc(headCx, headCy, headR, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Head highlight
+  const headSpec = ctx.createRadialGradient(headCx - 6, headCy - 8, 0, headCx, headCy, headR * 0.6)
+  headSpec.addColorStop(0, 'rgba(255,255,255,0.2)')
+  headSpec.addColorStop(1, 'rgba(255,255,255,0)')
+  ctx.fillStyle = headSpec
+  ctx.beginPath()
+  ctx.arc(headCx, headCy, headR, 0, Math.PI * 2)
   ctx.fill()
 
   // Cheeks
-  ctx.fillStyle = 'rgba(255,180,180,0.15)'
-  ctx.beginPath(); ctx.arc(cx - 12, headY + 4, 5, 0, Math.PI * 2); ctx.fill()
-  ctx.beginPath(); ctx.arc(cx + 12, headY + 4, 5, 0, Math.PI * 2); ctx.fill()
+  ctx.fillStyle = 'rgba(255,200,180,0.15)'
+  ctx.beginPath(); ctx.arc(headCx - 14, headCy + 6, 6, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.arc(headCx + 10, headCy + 8, 5, 0, Math.PI * 2); ctx.fill()
 
-  // Eyes - larger with more detail
-  ctx.fillStyle = '#fff'
-  ctx.beginPath(); ctx.arc(cx - 7, headY - 3, 6, 0, Math.PI * 2); ctx.fill()
-  ctx.beginPath(); ctx.arc(cx + 7, headY - 3, 6, 0, Math.PI * 2); ctx.fill()
-  // Iris
-  ctx.fillStyle = '#1a5c2e'
-  ctx.beginPath(); ctx.arc(cx - 6, headY - 3, 3.5, 0, Math.PI * 2); ctx.fill()
-  ctx.beginPath(); ctx.arc(cx + 8, headY - 3, 3.5, 0, Math.PI * 2); ctx.fill()
-  // Pupil
-  ctx.fillStyle = '#0a0a1e'
-  ctx.beginPath(); ctx.arc(cx - 5.5, headY - 3, 2, 0, Math.PI * 2); ctx.fill()
-  ctx.beginPath(); ctx.arc(cx + 8.5, headY - 3, 2, 0, Math.PI * 2); ctx.fill()
-  // Eye highlights
-  ctx.fillStyle = 'rgba(255,255,255,0.85)'
-  ctx.beginPath(); ctx.arc(cx - 8, headY - 5, 2, 0, Math.PI * 2); ctx.fill()
-  ctx.beginPath(); ctx.arc(cx + 6, headY - 5, 2, 0, Math.PI * 2); ctx.fill()
-  ctx.fillStyle = 'rgba(255,255,255,0.4)'
-  ctx.beginPath(); ctx.arc(cx - 4, headY - 1, 1, 0, Math.PI * 2); ctx.fill()
-  ctx.beginPath(); ctx.arc(cx + 10, headY - 1, 1, 0, Math.PI * 2); ctx.fill()
+  // Eyes (looking forward-left)
+  for (const [ex, ey] of [[-8, -5], [6, -6]] as [number, number][]) {
+    // White
+    ctx.fillStyle = '#fff'
+    ctx.beginPath(); ctx.arc(headCx + ex, headCy + ey, 6.5, 0, Math.PI * 2); ctx.fill()
+    // Iris
+    const iGrad = ctx.createRadialGradient(headCx + ex - 1.5, headCy + ey, 0, headCx + ex, headCy + ey, 4.5)
+    iGrad.addColorStop(0, '#2ecc71')
+    iGrad.addColorStop(0.5, '#1a7a3e')
+    iGrad.addColorStop(1, '#0d4020')
+    ctx.fillStyle = iGrad
+    ctx.beginPath(); ctx.arc(headCx + ex - 1, headCy + ey, 4, 0, Math.PI * 2); ctx.fill()
+    // Pupil
+    ctx.fillStyle = '#0a0a18'
+    ctx.beginPath(); ctx.arc(headCx + ex - 1.5, headCy + ey, 2.2, 0, Math.PI * 2); ctx.fill()
+    // Highlights
+    ctx.fillStyle = 'rgba(255,255,255,0.9)'
+    ctx.beginPath(); ctx.arc(headCx + ex - 3.5, headCy + ey - 3, 2.2, 0, Math.PI * 2); ctx.fill()
+    ctx.fillStyle = 'rgba(255,255,255,0.35)'
+    ctx.beginPath(); ctx.arc(headCx + ex + 1, headCy + ey + 1.5, 1, 0, Math.PI * 2); ctx.fill()
+  }
+
+  // Nostrils
+  ctx.fillStyle = '#145c2e'
+  ctx.beginPath(); ctx.arc(headCx - 4, headCy + 4, 1.2, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.arc(headCx + 1, headCy + 3.5, 1.2, 0, Math.PI * 2); ctx.fill()
 
   // Smile
   ctx.strokeStyle = '#145c2e'
   ctx.lineWidth = 1.5
   ctx.beginPath()
-  ctx.arc(cx, headY + 5, 6, 0.15, Math.PI - 0.15)
+  ctx.arc(headCx - 1, headCy + 8, 7, 0.1, Math.PI - 0.3)
   ctx.stroke()
-
-  // Nostrils
-  ctx.fillStyle = '#145c2e'
-  ctx.beginPath(); ctx.arc(cx - 2, headY + 1, 1, 0, Math.PI * 2); ctx.fill()
-  ctx.beginPath(); ctx.arc(cx + 2, headY + 1, 1, 0, Math.PI * 2); ctx.fill()
 }
 
 function drawRabbit(ctx: CanvasRenderingContext2D, cx: number, cy: number, time: number) {
