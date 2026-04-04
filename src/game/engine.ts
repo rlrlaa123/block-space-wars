@@ -228,6 +228,14 @@ export function createEngine(
     updateAllEffects(dt)
     updateShake(shake)
 
+    // Shield rotation (always, not just during firing)
+    for (const brick of state.bricks) {
+      if (brick.type === 'shield' && !brick.dead) {
+        brick.shieldAngle = ((brick.shieldAngle ?? 0) + (2 * Math.PI / 2) * dt) // 2s per rotation
+        if (brick.shieldAngle! > 2 * Math.PI) brick.shieldAngle! -= 2 * Math.PI
+      }
+    }
+
     // Decay background flash
     if (bgFlashAlpha > 0) bgFlashAlpha = Math.max(0, bgFlashAlpha - dt * 6)
 

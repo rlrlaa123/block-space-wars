@@ -2,7 +2,7 @@ import type { Ball, Brick, Vec2 } from './types'
 import {
   BALL_RADIUS, SUBSTEPS, GRAVITY_WELL_FORCE,
   GRAVITY_WELL_MIN_DIST, GRAVITY_WELL_RADIUS_CELLS,
-  SHIELD_ARC_DEG, SHIELD_ROTATION_PERIOD,
+  SHIELD_ARC_DEG,
   GRID_COLS, BRICK_GAP,
 } from './constants'
 
@@ -225,14 +225,6 @@ export function physicsUpdate(
 ): Brick[] {
   const subDt = dt / SUBSTEPS
   const allDestroyed: Brick[] = []
-
-  // Update shield rotations
-  for (const brick of bricks) {
-    if (brick.type === 'shield' && !brick.dead) {
-      brick.shieldAngle = ((brick.shieldAngle ?? 0) + (2 * Math.PI / SHIELD_ROTATION_PERIOD) * dt)
-      if (brick.shieldAngle! > 2 * Math.PI) brick.shieldAngle! -= 2 * Math.PI
-    }
-  }
 
   for (let i = 0; i < SUBSTEPS; i++) {
     const destroyed = physicsSubstep(balls, bricks, layout, subDt)

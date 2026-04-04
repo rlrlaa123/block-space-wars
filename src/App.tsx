@@ -138,7 +138,7 @@ export default function App() {
       <ChapterSelect
         unlockedChapter={progress.chapter}
         unlockedStage={progress.stage}
-        onSelect={(ch, stage) => startGame(ch, stage, ch === progress.chapter && stage === progress.stage ? progress.ballCount : undefined)}
+        onSelect={(ch, stage) => startGame(ch, stage, ch === progress.chapter ? progress.ballCount : undefined)}
         onBack={() => setScreen('title')}
       />
     )
