@@ -154,61 +154,117 @@ function drawItem(ctx: CanvasRenderingContext2D, item: Item, layout: LayoutInfo)
   if (item.collected) return
   const x = BRICK_GAP + item.col * (layout.cellSize + BRICK_GAP) + layout.cellSize / 2
   const y = layout.gridOffsetY + item.row * (layout.cellSize + BRICK_GAP) + layout.cellSize / 2
-  const r = layout.cellSize * 0.3
+  const r = layout.cellSize * 0.28
 
-  // Pulsing glow
+  // Item color map
+  const colors: Record<string, [string, string]> = {
+    ball:       ['#2ecc71', '#27ae60'],
+    bomb:       ['#e74c3c', '#c0392b'],
+    laser:      ['#3498db', '#2980b9'],
+    multiplier: ['#f39c12', '#e67e22'],
+    pierce:     ['#9b59b6', '#8e44ad'],
+  }
+  const [c1, c2] = colors[item.type] ?? ['#f1c40f', '#e67e22']
+
+  // Outer glow
+  ctx.globalAlpha = 0.25
+  const glow = ctx.createRadialGradient(x, y, 0, x, y, r * 2.5)
+  glow.addColorStop(0, c1)
+  glow.addColorStop(1, 'transparent')
+  ctx.fillStyle = glow
+  ctx.beginPath()
+  ctx.arc(x, y, r * 2.5, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.globalAlpha = 1
+
+  // Main circle with gradient
+  const grad = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, 0, x, y, r)
+  grad.addColorStop(0, c1)
+  grad.addColorStop(1, c2)
+  ctx.fillStyle = grad
   ctx.beginPath()
   ctx.arc(x, y, r, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Rim
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)'
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.arc(x, y, r, 0, Math.PI * 2)
+  ctx.stroke()
+
+  // Highlight
+  ctx.fillStyle = 'rgba(255,255,255,0.35)'
+  ctx.beginPath()
+  ctx.arc(x - r * 0.25, y - r * 0.3, r * 0.35, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Icon / label
+  ctx.fillStyle = '#fff'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
 
   switch (item.type) {
     case 'ball':
-      ctx.fillStyle = '#4caf50'
-      ctx.fill()
-      ctx.fillStyle = '#fff'
-      ctx.font = 'bold 10px monospace'
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'middle'
-      ctx.fillText(`+${item.bonusAmount ?? 1}`, x, y)
+      ctx.font = `bold ${Math.round(r * 0.9)}px sans-serif`
+      ctx.fillText(`+${item.bonusAmount ?? 1}`, x, y + 1)
       break
-    case 'bomb':
-      ctx.fillStyle = '#e74c3c'
+    case 'bomb': {
+      // Draw a bomb icon instead of emoji
+      const br = r * 0.35
+      ctx.fillStyle = '#1a1a2e'
+      ctx.beginPath()
+      ctx.arc(x, y + 1, br, 0, Math.PI * 2)
       ctx.fill()
-      ctx.fillStyle = '#fff'
-      ctx.font = 'bold 10px monospace'
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'middle'
-      ctx.fillText('💥', x, y - 1)
-      break
-    case 'laser':
-      ctx.fillStyle = '#3498db'
+      // Fuse
+      ctx.strokeStyle = '#f5a623'
+      ctx.lineWidth = 1.5
+      ctx.beginPath()
+      ctx.moveTo(x + br * 0.5, y - br * 0.5)
+      ctx.quadraticCurveTo(x + br * 1.2, y - br * 1.5, x + br * 0.3, y - br * 1.8)
+      ctx.stroke()
+      // Spark
+      ctx.fillStyle = '#ffd93d'
+      ctx.beginPath()
+      ctx.arc(x + br * 0.3, y - br * 1.8, 2, 0, Math.PI * 2)
       ctx.fill()
-      ctx.fillStyle = '#fff'
-      ctx.font = '10px monospace'
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'middle'
-      ctx.fillText('⚡', x, y - 1)
       break
+    }
+    case 'laser': {
+      // Lightning bolt shape
+      ctx.fillStyle = '#fff'
+      ctx.beginPath()
+      const s = r * 0.4
+      ctx.moveTo(x - s * 0.3, y - s * 1.2)
+      ctx.lineTo(x + s * 0.5, y - s * 0.2)
+      ctx.lineTo(x - s * 0.1, y - s * 0.1)
+      ctx.lineTo(x + s * 0.3, y + s * 1.2)
+      ctx.lineTo(x - s * 0.5, y + s * 0.2)
+      ctx.lineTo(x + s * 0.1, y + s * 0.1)
+      ctx.closePath()
+      ctx.fill()
+      break
+    }
     case 'multiplier':
-      ctx.fillStyle = '#f1c40f'
-      ctx.fill()
-      ctx.fillStyle = '#fff'
-      ctx.font = 'bold 10px monospace'
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'middle'
-      ctx.fillText('×3', x, y)
+      ctx.font = `bold ${Math.round(r * 0.85)}px sans-serif`
+      ctx.fillText('×3', x, y + 1)
       break
-    case 'pierce':
-      ctx.fillStyle = '#9b59b6'
-      ctx.fill()
+    case 'pierce': {
+      // Diamond shape
       ctx.fillStyle = '#fff'
-      ctx.font = '10px monospace'
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'middle'
-      ctx.fillText('◆', x, y)
+      ctx.beginPath()
+      const d = r * 0.5
+      ctx.moveTo(x, y - d)
+      ctx.lineTo(x + d * 0.7, y)
+      ctx.lineTo(x, y + d)
+      ctx.lineTo(x - d * 0.7, y)
+      ctx.closePath()
+      ctx.fill()
       break
+    }
     default:
-      ctx.fillStyle = '#f1c40f'
-      ctx.fill()
+      ctx.font = `bold ${Math.round(r * 0.9)}px sans-serif`
+      ctx.fillText('?', x, y + 1)
   }
 }
 
@@ -245,17 +301,18 @@ function drawHUD(ctx: CanvasRenderingContext2D, state: GameState, layout: Layout
   ctx.textBaseline = 'middle'
   ctx.fillText(`Ch.${state.currentChapter + 1} - ${state.currentStage + 1}`, w / 2, 22)
 
-  // ── Bottom HUD bar ──
-  const bottomBarY = layout.launchY + 14
+  // ── Bottom HUD bar (opaque, clearly separated) ──
+  const bottomBarY = layout.launchY + 12
   const bottomBarH = layout.canvasH - bottomBarY
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.35)'
+  // Solid dark background so game objects can't show through
+  ctx.fillStyle = '#08081e'
   ctx.fillRect(0, bottomBarY, w, bottomBarH)
-  // Separator line
-  ctx.strokeStyle = 'rgba(255,255,255,0.08)'
+  // Subtle top highlight line
+  ctx.strokeStyle = 'rgba(78, 205, 196, 0.2)'
   ctx.lineWidth = 1
   ctx.beginPath()
-  ctx.moveTo(0, bottomBarY)
-  ctx.lineTo(w, bottomBarY)
+  ctx.moveTo(0, bottomBarY + 0.5)
+  ctx.lineTo(w, bottomBarY + 0.5)
   ctx.stroke()
 
   // Ball count (bottom-left, amber)
