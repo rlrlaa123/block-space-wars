@@ -179,7 +179,7 @@ export function physicsSubstep(
     ball.pos.y += ball.vel.y * subDt
 
     // Wall bounce
-    wallBounce(ball, layout.canvasW, layout.canvasH, layout.launchY, layout.gridOffsetY)
+    wallBounce(ball, layout.canvasW, layout.canvasH, layout.launchY, 72) // bounce off HUD bottom, not grid top
     if (ball.landed) continue
 
     // Brick collisions
