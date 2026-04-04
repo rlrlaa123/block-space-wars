@@ -18,7 +18,7 @@ import { hapticLight, hapticMedium, hapticHeavy } from '../utils/haptic'
 import { generateStage } from '../stages/generator'
 import {
   CHAPTERS, FIXED_DT, STAGE_CLEAR_DELAY, GAME_OVER_FADE_DURATION,
-  BALL_RADIUS, TRAIL_LENGTH,
+  BALL_RADIUS, MAX_BALLS,
 } from './constants'
 
 export interface EngineCallbacks {
@@ -108,20 +108,18 @@ export function createEngine(
   }
   window.addEventListener('resize', resize)
 
-  // Input — tap below launch line during firing = recall balls
+  // Input
   const cleanupInput = setupInput(
     canvas,
     () => state.launchX,
     () => layout.launchY,
-    (angle) => {
-      if (state.phase === 'firing') {
-        recallBalls(state, layout.launchY)
-        return
-      }
-      startAiming(state, angle)
-    },
+    (angle) => startAiming(state, angle),
     (angle) => updateAim(state, angle),
     () => { fire(state); firingElapsed = 0 },
+    // Recall button handler: called when tap is in bottom area during firing
+    () => {
+      if (state.phase === 'firing') recallBalls(state, layout.launchY)
+    },
   )
 
   // Game loop

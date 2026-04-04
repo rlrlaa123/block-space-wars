@@ -27,6 +27,7 @@ export function setupInput(
   onAimStart: (angle: number) => void,
   onAimUpdate: (angle: number) => void,
   onFire: () => void,
+  onRecall?: () => void,
 ) {
   const input = createInputState()
 
@@ -41,6 +42,15 @@ export function setupInput(
 
   function handleStart(clientX: number, clientY: number) {
     const pos = toCanvasCoords(clientX, clientY)
+
+    // Check recall button area (bottom 60px of canvas)
+    const rect = canvas.getBoundingClientRect()
+    const canvasH = rect.height
+    if (pos.y > canvasH - 60 && onRecall) {
+      onRecall()
+      return
+    }
+
     const angle = calcAngle(launchXFn(), launchYFn(), pos.x, pos.y)
     input.aimAngle = angle
     input.isDragging = true

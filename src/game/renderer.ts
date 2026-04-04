@@ -222,11 +222,39 @@ function drawHUD(ctx: CanvasRenderingContext2D, state: GameState, layout: Layout
 
 function drawLaunchPos(ctx: CanvasRenderingContext2D, state: GameState, layout: LayoutInfo) {
   if (state.phase === 'firing') return
-  // Subtle pulsing indicator
   ctx.fillStyle = 'rgba(255, 255, 255, 0.7)'
   ctx.beginPath()
   ctx.arc(state.launchX, layout.launchY, BALL_RADIUS + 2, 0, Math.PI * 2)
   ctx.fill()
+}
+
+// ── Recall button (only during firing) ──
+
+function drawRecallButton(ctx: CanvasRenderingContext2D, layout: LayoutInfo) {
+  const btnW = 100
+  const btnH = 36
+  const x = (layout.canvasW - btnW) / 2
+  const y = layout.canvasH - btnH - 12
+
+  // Button background
+  ctx.fillStyle = 'rgba(140, 160, 220, 0.25)'
+  ctx.beginPath()
+  ctx.roundRect(x, y, btnW, btnH, 8)
+  ctx.fill()
+
+  // Border
+  ctx.strokeStyle = 'rgba(140, 160, 220, 0.5)'
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.roundRect(x, y, btnW, btnH, 8)
+  ctx.stroke()
+
+  // Text
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.8)'
+  ctx.font = 'bold 14px sans-serif'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText('⏬ 회수', x + btnW / 2, y + btnH / 2)
 }
 
 // ── Tutorial overlay ──
@@ -392,6 +420,7 @@ export function render(
   // ── PASS 6: HUD + overlays ──
   drawAimLine(ctx, state, layout)
   drawLaunchPos(ctx, state, layout)
+  if (state.phase === 'firing') drawRecallButton(ctx, layout)
   drawHUD(ctx, state, layout, chapterName)
   renderComboTexts(ctx, canvasW)
   renderConfetti(ctx)
