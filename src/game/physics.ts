@@ -18,7 +18,6 @@ export interface LayoutInfo {
 
 export function computeLayout(canvasW: number, canvasH: number): LayoutInfo {
   const gridOffsetY = canvasH * 0.05 // below HUD
-  const brickAreaH = canvasH * 0.60
   const cellSize = (canvasW - BRICK_GAP * (GRID_COLS + 1)) / GRID_COLS
   const launchY = canvasH - 30
   return { gridOffsetY, cellSize, canvasW, canvasH, launchY }
@@ -68,7 +67,7 @@ function ballBrickCollision(ball: Ball, bx: number, by: number, bw: number, bh: 
 
 // ── Wall bounce ──
 
-export function wallBounce(ball: Ball, canvasW: number, canvasH: number, launchY: number): boolean {
+export function wallBounce(ball: Ball, canvasW: number, _canvasH: number, launchY: number): boolean {
   const r = BALL_RADIUS
   // Left wall
   if (ball.pos.x - r <= 0) {

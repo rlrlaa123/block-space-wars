@@ -3,12 +3,13 @@
 
 export interface ScreenShake {
   intensity: number
+  duration: number
   offsetX: number
   offsetY: number
 }
 
 export function createScreenShake(): ScreenShake {
-  return { intensity: 0, offsetX: 0, offsetY: 0 }
+  return { intensity: 0, duration: 0, offsetX: 0, offsetY: 0 }
 }
 
 export function triggerShake(shake: ScreenShake, amount: number) {

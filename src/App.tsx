@@ -93,7 +93,7 @@ export default function App() {
   if (screen === 'title') {
     return (
       <TitleScreen
-        hasProgress={unlockedChapter > 0}
+        hasProgress={true}
         onStart={() => startGame(0)}
         onChapterSelect={() => setScreen('chapter-select')}
       />

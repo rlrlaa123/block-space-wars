@@ -229,7 +229,6 @@ export function createEngine(
         if (ball.landed || ball.pos.y < -900) continue
         for (const brick of state.bricks) {
           if (brick.dead || brick.flashTimer !== 3) continue // flashTimer 3 = just hit
-          const rect = brickRect(brick, layout)
           spawnHitSpark(ball.pos.x, ball.pos.y, CHAPTERS[state.currentChapter].accentColor)
           spawnHitRing(ball.pos.x, ball.pos.y, CHAPTERS[state.currentChapter].brickColor)
           break

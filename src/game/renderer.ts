@@ -6,7 +6,7 @@ import {
   renderGlowEffects, renderBgWaves, renderFloorImpacts,
   renderComboTexts, renderConfetti,
 } from '../effects/particles'
-import { BALL_RADIUS, GRID_COLS, BRICK_GAP, SHIELD_ARC_DEG } from './constants'
+import { BALL_RADIUS, BRICK_GAP, SHIELD_ARC_DEG } from './constants'
 
 // ── Star field ──
 let stars: { x: number; y: number; size: number; phase: number }[] = []
@@ -22,7 +22,7 @@ function initStars(w: number, h: number) {
 
 // ── Ball rendering with glow + trail + speed lines ──
 
-function drawBall(ctx: CanvasRenderingContext2D, ball: Ball, accentColor: string) {
+function drawBall(ctx: CanvasRenderingContext2D, ball: Ball, _accentColor: string) {
   if (ball.landed || ball.pos.y < -800) return
 
   // Speed lines (when fast)

@@ -1,7 +1,7 @@
-import type { GameState, Ball, Brick, Item, GamePhase } from './types'
+import type { GameState, Ball, Brick, Item, GamePhase, BrickType } from './types'
 import {
   BALL_SPEED, BALL_RADIUS, BALL_STAGGER_MS, MAX_BALLS,
-  TURN_TIMEOUT_S, STAGES_PER_CHAPTER, INITIAL_BALL_COUNT,
+  STAGES_PER_CHAPTER, INITIAL_BALL_COUNT,
   RECALL_SPEED, GRID_COLS, GRID_ROWS, TURNS_PER_STAGE,
 } from './constants'
 import { CHAPTERS } from './constants'
@@ -115,16 +115,7 @@ export function updateFiring(state: GameState, dt: number, launchY: number): {
     }
   }
 
-  // Timeout
-  if (state.turnTimer >= TURN_TIMEOUT_S) {
-    for (const ball of state.balls) {
-      if (!ball.landed) {
-        ball.landed = true
-        if (state.firstLandedX === null) state.firstLandedX = ball.pos.x
-      }
-    }
-    return { phaseDone: true, timeout: true }
-  }
+  // No forced timeout — balls bounce until they land naturally
 
   // All done?
   const allSpawned = state.balls.every(b => b.pos.y > -900)
@@ -138,7 +129,6 @@ export function updateFiring(state: GameState, dt: number, launchY: number): {
 
 export function generateNewRow(state: GameState): { bricks: Brick[], items: Item[] } {
   const chapter = CHAPTERS[state.currentChapter]
-  const stageProgress = state.currentStage / STAGES_PER_CHAPTER
   const bricks: Brick[] = []
   const items: Item[] = []
 
@@ -161,9 +151,9 @@ export function generateNewRow(state: GameState): { bricks: Brick[], items: Item
     const hp = Math.max(1, baseHp + variance)
 
     // Special brick type chance
-    let type: 'basic' | 'gravity-well' | 'shield' | 'splitter' = 'basic'
+    let type: BrickType = 'basic'
     if (Math.random() < chapter.specialBrickRate && chapter.specialBrickTypes.length > 0) {
-      type = chapter.specialBrickTypes[Math.floor(Math.random() * chapter.specialBrickTypes.length)] as typeof type
+      type = chapter.specialBrickTypes[Math.floor(Math.random() * chapter.specialBrickTypes.length)] as BrickType
     }
 
     bricks.push({

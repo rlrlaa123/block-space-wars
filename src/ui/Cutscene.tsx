@@ -9,7 +9,7 @@ interface Props {
   onComplete: () => void
 }
 
-function CharacterSprite({ character, accentColor }: { character: string; accentColor: string }) {
+function CharacterSprite({ character }: { character: string; accentColor?: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
