@@ -405,15 +405,15 @@ function drawAimLine(ctx: CanvasRenderingContext2D, state: GameState, layout: La
 function drawHUD(ctx: CanvasRenderingContext2D, state: GameState, layout: LayoutInfo, _chapterName: string, accentColor: string) {
   const w = layout.canvasW
 
-  // Top bar background (opaque to cover any game bleed)
+  // Top bar background (only covers HUD text area, not bounce space)
   ctx.fillStyle = '#08081e'
-  ctx.fillRect(0, 0, w, layout.gridOffsetY)
-  // Subtle bottom separator
+  ctx.fillRect(0, 0, w, 68)
+  // Separator line at HUD bottom
   ctx.strokeStyle = 'rgba(78, 205, 196, 0.15)'
   ctx.lineWidth = 1
   ctx.beginPath()
-  ctx.moveTo(0, layout.gridOffsetY - 0.5)
-  ctx.lineTo(w, layout.gridOffsetY - 0.5)
+  ctx.moveTo(0, 67.5)
+  ctx.lineTo(w, 67.5)
   ctx.stroke()
 
   // Chapter + Stage label (centered)
