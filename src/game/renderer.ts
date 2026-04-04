@@ -241,11 +241,13 @@ function drawHUD(ctx: CanvasRenderingContext2D, state: GameState, layout: Layout
   const y = hudH / 2
   ctx.textAlign = 'left'
   ctx.fillText(`${chapterName} ${state.currentStage + 1}/10`, 8, y)
-  // Progress bar (rows spawned / total)
+  // Destruction progress
   ctx.textAlign = 'center'
   ctx.fillStyle = 'rgba(255,255,255,0.5)'
-  const alive = state.bricks.filter(b => !b.dead).length
-  ctx.fillText(`${alive}`, layout.canvasW / 2, y)
+  if (state.totalBricksSpawned > 0) {
+    const pct = Math.round((state.bricksDestroyed / state.totalBricksSpawned) * 100)
+    ctx.fillText(`${pct}%`, layout.canvasW / 2, y)
+  }
   ctx.fillStyle = '#ffffff'
   ctx.textAlign = 'right'
   ctx.fillText(`●×${state.ballCount}`, layout.canvasW - 8, y)

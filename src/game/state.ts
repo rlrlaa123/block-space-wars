@@ -23,6 +23,8 @@ export function createInitialState(): GameState {
     score: 0,
     turnCount: 0,
     rowsSpawned: 0,
+    totalBricksSpawned: 0,
+    bricksDestroyed: 0,
     firstLandedX: null,
     showTutorial: true,
     clearTimer: 0,
@@ -236,6 +238,7 @@ export function endTurn(state: GameState): GamePhase {
     state.bricks.push(...newRow.bricks)
     state.items.push(...newRow.items)
     state.rowsSpawned++
+    state.totalBricksSpawned += newRow.bricks.length
   }
 
   state.phase = 'idle'

@@ -119,6 +119,8 @@ export interface GameState {
   score: number
   turnCount: number       // turns played this stage
   rowsSpawned: number     // rows spawned so far (stage clear when all spawned + 0 bricks)
+  totalBricksSpawned: number  // total bricks ever spawned this stage
+  bricksDestroyed: number     // total bricks destroyed this stage
   firstLandedX: number | null // x of first ball to land this turn
   showTutorial: boolean
   // Stage clear / chapter clear animation
