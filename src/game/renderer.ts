@@ -290,9 +290,16 @@ function drawAimLine(ctx: CanvasRenderingContext2D, state: GameState, layout: La
 function drawHUD(ctx: CanvasRenderingContext2D, state: GameState, layout: LayoutInfo, _chapterName: string, accentColor: string) {
   const w = layout.canvasW
 
-  // Top bar background
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'
-  ctx.fillRect(0, 0, w, 44)
+  // Top bar background (opaque to cover any game bleed)
+  ctx.fillStyle = '#08081e'
+  ctx.fillRect(0, 0, w, layout.gridOffsetY)
+  // Subtle bottom separator
+  ctx.strokeStyle = 'rgba(78, 205, 196, 0.15)'
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.moveTo(0, layout.gridOffsetY - 0.5)
+  ctx.lineTo(w, layout.gridOffsetY - 0.5)
+  ctx.stroke()
 
   // Chapter + Stage label (centered)
   ctx.fillStyle = '#ffffff'
@@ -655,10 +662,10 @@ export function render(
     ctx.fillRect(0, 0, canvasW, canvasH)
   }
 
-  // ── PASS 2-5: Game area (clipped to avoid bleeding into HUD) ──
+  // ── PASS 2-5: Game area (clipped between top HUD and bottom HUD) ──
   ctx.save()
   ctx.beginPath()
-  ctx.rect(0, 0, canvasW, layout.launchY + BALL_RADIUS + 2)
+  ctx.rect(0, layout.gridOffsetY, canvasW, layout.launchY + BALL_RADIUS + 2 - layout.gridOffsetY)
   ctx.clip()
 
   // PASS 2: Game objects
