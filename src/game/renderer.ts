@@ -91,78 +91,129 @@ function rgbStr(r: number, g: number, b: number, a = 1): string {
   return a < 1 ? `rgba(${r},${g},${b},${a})` : `rgb(${r},${g},${b})`
 }
 
-// ── Shared geometric block drawing (flat, minimal, rim-lit) ──
-// Style: matches space turtle aesthetic — crisp silhouette, flat shading,
-// single cyan rim light, subtle diagonal depth
+// ── Block drawing: sci-fi chamfered panel (matches turtle shell pattern) ──
 
 function draw3DBlock(
   ctx: CanvasRenderingContext2D,
   x: number, y: number, w: number, h: number,
-  baseColor: string, rad: number,
+  baseColor: string, _rad: number,
 ) {
   const [br, bg, bb] = hexRgb(baseColor)
-  const edge = 2
+  const chamfer = Math.min(w, h) * 0.2  // angled corner cuts
 
-  // 1) Drop shadow (crisp offset, not soft blur)
-  ctx.fillStyle = 'rgba(0,0,0,0.35)'
-  ctx.beginPath()
-  ctx.roundRect(x + 1, y + 2, w, h, rad)
+  // Helper: build chamfered hex-ish panel path
+  const panelPath = (px: number, py: number, pw: number, ph: number) => {
+    ctx.beginPath()
+    ctx.moveTo(px + chamfer, py)
+    ctx.lineTo(px + pw - chamfer, py)
+    ctx.lineTo(px + pw, py + chamfer)
+    ctx.lineTo(px + pw, py + ph - chamfer)
+    ctx.lineTo(px + pw - chamfer, py + ph)
+    ctx.lineTo(px + chamfer, py + ph)
+    ctx.lineTo(px, py + ph - chamfer)
+    ctx.lineTo(px, py + chamfer)
+    ctx.closePath()
+  }
+
+  // 1) Drop shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.45)'
+  panelPath(x + 1, y + 2, w, h)
   ctx.fill()
 
-  // 2) Dark base (full silhouette)
+  // 2) Dark base (fills whole panel shape)
   ctx.fillStyle = rgbStr(
-    Math.round(br * 0.25), Math.round(bg * 0.25), Math.round(bb * 0.25),
+    Math.round(br * 0.22), Math.round(bg * 0.22), Math.round(bb * 0.22),
   )
-  ctx.beginPath()
-  ctx.roundRect(x, y, w, h, rad)
+  panelPath(x, y, w, h)
   ctx.fill()
 
-  // 3) Main face — flat 2-tone split (diagonal light source)
-  // Upper-left lit portion
+  // 3) Lit face (upper-left half, diagonal split)
+  ctx.save()
+  panelPath(x, y, w, h)
+  ctx.clip()
+  // Top-left lit zone
   ctx.fillStyle = baseColor
   ctx.beginPath()
-  ctx.roundRect(x, y, w - 1, h - edge, rad)
+  ctx.moveTo(x - 1, y - 1)
+  ctx.lineTo(x + w + 1, y - 1)
+  ctx.lineTo(x + w + 1, y + h * 0.4)
+  ctx.lineTo(x - 1, y + h * 0.75)
+  ctx.closePath()
   ctx.fill()
-
-  // 4) Bottom-right shadow wedge (angular cut, Monument Valley style)
-  ctx.save()
-  ctx.beginPath()
-  ctx.roundRect(x, y, w - 1, h - edge, rad)
-  ctx.clip()
+  // Bottom-right shaded zone
   ctx.fillStyle = rgbStr(
-    Math.round(br * 0.6), Math.round(bg * 0.6), Math.round(bb * 0.6),
+    Math.round(br * 0.55), Math.round(bg * 0.55), Math.round(bb * 0.55),
   )
   ctx.beginPath()
-  ctx.moveTo(x - 1, y + h * 0.55)
-  ctx.lineTo(x + w + 1, y + h * 0.3)
+  ctx.moveTo(x - 1, y + h * 0.75)
+  ctx.lineTo(x + w + 1, y + h * 0.4)
   ctx.lineTo(x + w + 1, y + h + 1)
   ctx.lineTo(x - 1, y + h + 1)
   ctx.closePath()
   ctx.fill()
   ctx.restore()
 
-  // 5) Top edge rim light (cyan accent, matches turtle)
-  ctx.strokeStyle = 'rgba(255,255,255,0.25)'
-  ctx.lineWidth = 1
-  ctx.beginPath()
-  ctx.moveTo(x + rad - 0.5, y + 0.5)
-  ctx.lineTo(x + w - rad, y + 0.5)
-  ctx.stroke()
-
-  // 6) Left edge rim
-  ctx.strokeStyle = 'rgba(255,255,255,0.12)'
-  ctx.beginPath()
-  ctx.moveTo(x + 0.5, y + rad)
-  ctx.lineTo(x + 0.5, y + h - rad - edge)
-  ctx.stroke()
-
-  // 7) Crisp dark outline (silhouette definition)
+  // 4) Inner diagonal seam line (where light meets shadow)
   ctx.strokeStyle = rgbStr(
     Math.round(br * 0.15), Math.round(bg * 0.15), Math.round(bb * 0.15),
   )
   ctx.lineWidth = 1
   ctx.beginPath()
-  ctx.roundRect(x + 0.5, y + 0.5, w - 1, h - 1, rad)
+  ctx.moveTo(x, y + h * 0.75)
+  ctx.lineTo(x + w, y + h * 0.4)
+  ctx.stroke()
+
+  // 5) Inner panel border (inset, creates "plate on plate" feel)
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)'
+  ctx.lineWidth = 1
+  const inset = 3
+  ctx.beginPath()
+  ctx.moveTo(x + chamfer, y + inset)
+  ctx.lineTo(x + w - chamfer, y + inset)
+  ctx.stroke()
+
+  // 6) Corner accent marks (4 small brackets)
+  ctx.strokeStyle = 'rgba(255,255,255,0.3)'
+  ctx.lineWidth = 1
+  const cLen = 3
+  // Top-left
+  ctx.beginPath()
+  ctx.moveTo(x + chamfer + 1, y + cLen + 1)
+  ctx.lineTo(x + chamfer + 1, y + 1)
+  ctx.lineTo(x + chamfer + 1 + cLen, y + 1)
+  ctx.stroke()
+  // Top-right
+  ctx.beginPath()
+  ctx.moveTo(x + w - chamfer - 1 - cLen, y + 1)
+  ctx.lineTo(x + w - chamfer - 1, y + 1)
+  ctx.lineTo(x + w - chamfer - 1, y + cLen + 1)
+  ctx.stroke()
+
+  // 7) Top chamfer rim light (bright)
+  ctx.strokeStyle = 'rgba(255,255,255,0.4)'
+  ctx.lineWidth = 1.2
+  ctx.beginPath()
+  ctx.moveTo(x + chamfer, y + 0.5)
+  ctx.lineTo(x + w - chamfer, y + 0.5)
+  ctx.stroke()
+  // Top-left chamfer edge
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)'
+  ctx.beginPath()
+  ctx.moveTo(x + 0.5, y + chamfer)
+  ctx.lineTo(x + chamfer, y + 0.5)
+  ctx.stroke()
+  // Top-right chamfer edge
+  ctx.beginPath()
+  ctx.moveTo(x + w - chamfer, y + 0.5)
+  ctx.lineTo(x + w - 0.5, y + chamfer)
+  ctx.stroke()
+
+  // 8) Crisp dark outline (full silhouette)
+  ctx.strokeStyle = rgbStr(
+    Math.round(br * 0.1), Math.round(bg * 0.1), Math.round(bb * 0.1),
+  )
+  ctx.lineWidth = 1
+  panelPath(x + 0.5, y + 0.5, w - 1, h - 1)
   ctx.stroke()
 }
 
