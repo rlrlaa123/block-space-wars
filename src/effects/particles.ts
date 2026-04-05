@@ -394,6 +394,232 @@ export function renderConfetti(ctx: CanvasRenderingContext2D) {
   ctx.globalAlpha = 1
 }
 
+// ══════════════════════════════════════════
+//  ITEM EFFECTS — dramatic, readable, layered
+// ══════════════════════════════════════════
+
+// ── Shockwave (expanding ring with thickness) ──
+interface Shockwave {
+  x: number; y: number; color: string; life: number; maxLife: number; maxR: number
+}
+const shockwaves: Shockwave[] = []
+
+export function spawnShockwave(x: number, y: number, color: string, maxR = 180, duration = 0.5) {
+  shockwaves.push({ x, y, color, life: duration, maxLife: duration, maxR })
+}
+
+export function updateShockwaves(dt: number) {
+  for (let i = shockwaves.length - 1; i >= 0; i--) {
+    shockwaves[i].life -= dt
+    if (shockwaves[i].life <= 0) shockwaves.splice(i, 1)
+  }
+}
+
+export function renderShockwaves(ctx: CanvasRenderingContext2D) {
+  for (const s of shockwaves) {
+    const t = 1 - s.life / s.maxLife
+    const r = easeOutCubic(t) * s.maxR
+    const a = (1 - t) * 0.6
+    // Outer thick ring
+    ctx.globalAlpha = a
+    ctx.strokeStyle = s.color
+    ctx.lineWidth = 4 * (1 - t) + 1
+    ctx.beginPath()
+    ctx.arc(s.x, s.y, r, 0, Math.PI * 2)
+    ctx.stroke()
+    // Inner bright ring
+    ctx.globalAlpha = a * 0.8
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.arc(s.x, s.y, r * 0.9, 0, Math.PI * 2)
+    ctx.stroke()
+  }
+  ctx.globalAlpha = 1
+}
+
+// ── Laser Beam (horizontal or vertical line) ──
+interface LaserBeam {
+  x1: number; y1: number; x2: number; y2: number
+  color: string; life: number; maxLife: number
+}
+const laserBeams: LaserBeam[] = []
+
+export function spawnLaserBeam(x1: number, y1: number, x2: number, y2: number, color: string) {
+  laserBeams.push({ x1, y1, x2, y2, color, life: 0.5, maxLife: 0.5 })
+}
+
+export function updateLaserBeams(dt: number) {
+  for (let i = laserBeams.length - 1; i >= 0; i--) {
+    laserBeams[i].life -= dt
+    if (laserBeams[i].life <= 0) laserBeams.splice(i, 1)
+  }
+}
+
+export function renderLaserBeams(ctx: CanvasRenderingContext2D) {
+  for (const b of laserBeams) {
+    const t = b.life / b.maxLife
+    // Outer glow
+    ctx.globalAlpha = t * 0.3
+    ctx.strokeStyle = b.color
+    ctx.lineWidth = 16 * t
+    ctx.lineCap = 'round'
+    ctx.beginPath()
+    ctx.moveTo(b.x1, b.y1); ctx.lineTo(b.x2, b.y2); ctx.stroke()
+    // Mid beam
+    ctx.globalAlpha = t * 0.7
+    ctx.lineWidth = 6 * t
+    ctx.beginPath()
+    ctx.moveTo(b.x1, b.y1); ctx.lineTo(b.x2, b.y2); ctx.stroke()
+    // Core bright line
+    ctx.globalAlpha = t
+    ctx.strokeStyle = '#ffffff'
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.moveTo(b.x1, b.y1); ctx.lineTo(b.x2, b.y2); ctx.stroke()
+    ctx.lineCap = 'butt'
+  }
+  ctx.globalAlpha = 1
+}
+
+// ── Star Burst (for multiplier, pickups) ──
+interface StarBurst {
+  x: number; y: number; color: string; life: number; maxLife: number
+  rays: number; rotSpeed: number; rot: number
+}
+const starBursts: StarBurst[] = []
+
+export function spawnStarBurst(x: number, y: number, color: string, rays = 8) {
+  starBursts.push({
+    x, y, color, life: 0.6, maxLife: 0.6,
+    rays, rot: Math.random() * Math.PI, rotSpeed: 1.5,
+  })
+}
+
+export function updateStarBursts(dt: number) {
+  for (let i = starBursts.length - 1; i >= 0; i--) {
+    starBursts[i].life -= dt
+    starBursts[i].rot += starBursts[i].rotSpeed * dt
+    if (starBursts[i].life <= 0) starBursts.splice(i, 1)
+  }
+}
+
+export function renderStarBursts(ctx: CanvasRenderingContext2D) {
+  for (const s of starBursts) {
+    const t = 1 - s.life / s.maxLife
+    const len = 12 + easeOutCubic(t) * 30
+    const alpha = (1 - t) * 0.9
+    ctx.globalAlpha = alpha
+    ctx.strokeStyle = s.color
+    ctx.lineWidth = 2 * (1 - t) + 0.5
+    ctx.lineCap = 'round'
+    for (let i = 0; i < s.rays; i++) {
+      const a = (i / s.rays) * Math.PI * 2 + s.rot
+      ctx.beginPath()
+      ctx.moveTo(s.x + Math.cos(a) * 4, s.y + Math.sin(a) * 4)
+      ctx.lineTo(s.x + Math.cos(a) * len, s.y + Math.sin(a) * len)
+      ctx.stroke()
+    }
+    ctx.lineCap = 'butt'
+    // Center flash
+    ctx.globalAlpha = alpha
+    const coreG = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, 10)
+    coreG.addColorStop(0, '#ffffff')
+    coreG.addColorStop(0.3, s.color)
+    coreG.addColorStop(1, 'transparent')
+    ctx.fillStyle = coreG
+    ctx.beginPath()
+    ctx.arc(s.x, s.y, 10, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  ctx.globalAlpha = 1
+}
+
+// ── Chain Beam (connects pierce target lines) ──
+interface ChainBeam {
+  x1: number; y1: number; x2: number; y2: number
+  color: string; life: number; maxLife: number
+}
+const chainBeams: ChainBeam[] = []
+
+export function spawnChainBeam(x1: number, y1: number, x2: number, y2: number, color: string) {
+  chainBeams.push({ x1, y1, x2, y2, color, life: 0.4, maxLife: 0.4 })
+}
+
+export function updateChainBeams(dt: number) {
+  for (let i = chainBeams.length - 1; i >= 0; i--) {
+    chainBeams[i].life -= dt
+    if (chainBeams[i].life <= 0) chainBeams.splice(i, 1)
+  }
+}
+
+export function renderChainBeams(ctx: CanvasRenderingContext2D) {
+  for (const b of chainBeams) {
+    const t = b.life / b.maxLife
+    // Zigzag line segments
+    const dx = b.x2 - b.x1
+    const dy = b.y2 - b.y1
+    const len = Math.sqrt(dx * dx + dy * dy)
+    const nx = -dy / len, ny = dx / len
+    ctx.globalAlpha = t * 0.8
+    ctx.strokeStyle = b.color
+    ctx.lineWidth = 3 * t
+    ctx.lineCap = 'round'
+    ctx.beginPath()
+    ctx.moveTo(b.x1, b.y1)
+    const segs = 3
+    for (let i = 1; i <= segs; i++) {
+      const p = i / (segs + 1)
+      const jitter = (i % 2 === 0 ? 1 : -1) * 6 * t
+      const px = b.x1 + dx * p + nx * jitter
+      const py = b.y1 + dy * p + ny * jitter
+      ctx.lineTo(px, py)
+    }
+    ctx.lineTo(b.x2, b.y2)
+    ctx.stroke()
+    // Core white line
+    ctx.globalAlpha = t
+    ctx.strokeStyle = '#ffffff'
+    ctx.lineWidth = 1
+    ctx.stroke()
+    ctx.lineCap = 'butt'
+  }
+  ctx.globalAlpha = 1
+}
+
+// ── Ball Spawn Flash (for multiplier-spawned balls) ──
+interface SpawnFlash {
+  x: number; y: number; color: string; life: number; maxLife: number
+}
+const spawnFlashes: SpawnFlash[] = []
+
+export function spawnBallFlash(x: number, y: number, color: string) {
+  spawnFlashes.push({ x, y, color, life: 0.3, maxLife: 0.3 })
+}
+
+export function updateSpawnFlashes(dt: number) {
+  for (let i = spawnFlashes.length - 1; i >= 0; i--) {
+    spawnFlashes[i].life -= dt
+    if (spawnFlashes[i].life <= 0) spawnFlashes.splice(i, 1)
+  }
+}
+
+export function renderSpawnFlashes(ctx: CanvasRenderingContext2D) {
+  for (const f of spawnFlashes) {
+    const t = 1 - f.life / f.maxLife
+    const r = 4 + t * 18
+    ctx.globalAlpha = (1 - t) * 0.9
+    ctx.strokeStyle = f.color
+    ctx.lineWidth = 2
+    ctx.beginPath(); ctx.arc(f.x, f.y, r, 0, Math.PI * 2); ctx.stroke()
+    // Cross
+    ctx.beginPath()
+    ctx.moveTo(f.x - r, f.y); ctx.lineTo(f.x + r, f.y)
+    ctx.moveTo(f.x, f.y - r); ctx.lineTo(f.x, f.y + r)
+    ctx.stroke()
+  }
+  ctx.globalAlpha = 1
+}
+
 // ── Update All ──
 
 export function updateAllEffects(dt: number) {
@@ -404,6 +630,11 @@ export function updateAllEffects(dt: number) {
   updateFloorImpacts(dt)
   updateComboTexts(dt)
   updateConfetti(dt)
+  updateShockwaves(dt)
+  updateLaserBeams(dt)
+  updateStarBursts(dt)
+  updateChainBeams(dt)
+  updateSpawnFlashes(dt)
 }
 
 // ── Clear All ──
@@ -416,4 +647,9 @@ export function clearAllEffects() {
   floorImpacts.length = 0
   comboTexts.length = 0
   confetti.length = 0
+  shockwaves.length = 0
+  laserBeams.length = 0
+  starBursts.length = 0
+  chainBeams.length = 0
+  spawnFlashes.length = 0
 }

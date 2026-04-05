@@ -5,6 +5,8 @@ import {
   renderParticles, renderGlowParticles, renderRings,
   renderGlowEffects, renderBgWaves, renderFloorImpacts,
   renderComboTexts, renderConfetti,
+  renderShockwaves, renderLaserBeams, renderStarBursts,
+  renderChainBeams, renderSpawnFlashes,
 } from '../effects/particles'
 import { BALL_RADIUS, BRICK_GAP, SHIELD_ARC_DEG, STAGE_TOTAL_ROWS } from './constants'
 
@@ -848,7 +850,12 @@ export function render(
   }
   ctx.globalCompositeOperation = 'source-over'
 
-  // PASS 4: Normal particles + rings
+  // PASS 4: Normal particles + rings + item effects
+  renderShockwaves(ctx)
+  renderLaserBeams(ctx)
+  renderChainBeams(ctx)
+  renderStarBursts(ctx)
+  renderSpawnFlashes(ctx)
   renderRings(ctx)
   renderParticles(ctx)
   renderFloorImpacts(ctx, layout.launchY)

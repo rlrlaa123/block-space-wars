@@ -11,6 +11,8 @@ import {
   spawnBrickBreak, spawnHitSpark, spawnHitRing,
   spawnDestroyGlow, spawnBackgroundWave, spawnFloorImpact,
   spawnComboText, spawnConfetti, spawnCollectBurst,
+  spawnShockwave, spawnLaserBeam, spawnStarBurst,
+  spawnChainBeam, spawnBallFlash,
   updateAllEffects, clearAllEffects,
 } from '../effects/particles'
 import { createScreenShake, triggerShake, updateShake } from '../effects/screen-shake'
@@ -345,31 +347,46 @@ export function createEngine(
               case 'ball': {
                 const bonus = item.bonusAmount ?? 1
                 state.ballCount = Math.min(state.ballCount + bonus, MAX_BALLS)
-                spawnCollectBurst(ix, iy, '#4caf50')
+                spawnCollectBurst(ix, iy, '#2ecc71')
+                spawnStarBurst(ix, iy, '#2ecc71', 6)
+                spawnHitRing(ix, iy, '#2ecc71')
                 break
               }
               case 'bomb': {
                 // AoE: destroy all bricks within 2 cells
                 spawnCollectBurst(ix, iy, '#e74c3c')
+                spawnShockwave(ix, iy, '#e74c3c', 160, 0.5)
+                spawnShockwave(ix, iy, '#ffd93d', 120, 0.4)
+                spawnStarBurst(ix, iy, '#ffd93d', 12)
                 hapticHeavy()
+                // Stagger destruction for visible wave effect
+                const affected: { brick: typeof state.bricks[0], dist: number }[] = []
                 for (const brick of state.bricks) {
                   if (brick.dead) continue
-                  if (Math.abs(brick.row - item.row) <= 2 && Math.abs(brick.col - item.col) <= 2) {
-                    brick.hp = 0
-                    brick.dead = true
-                    const rect = brickRect(brick, layout)
-                    spawnBrickBreak(rect.x, rect.y, rect.w, rect.h, chapter.accentColor)
-                    spawnDestroyGlow(rect.x, rect.y, rect.w, rect.h, chapter.accentColor)
-                  }
+                  const dist = Math.max(Math.abs(brick.row - item.row), Math.abs(brick.col - item.col))
+                  if (dist <= 2) affected.push({ brick, dist })
                 }
-                triggerShake(shake, 8)
-                bgFlashAlpha = 0.2
+                affected.sort((a, b) => a.dist - b.dist)
+                for (const { brick } of affected) {
+                  brick.hp = 0
+                  brick.dead = true
+                  const rect = brickRect(brick, layout)
+                  spawnBrickBreak(rect.x, rect.y, rect.w, rect.h, '#e74c3c')
+                  spawnDestroyGlow(rect.x, rect.y, rect.w, rect.h, '#ffd93d')
+                  spawnHitSpark(rect.x + rect.w / 2, rect.y + rect.h / 2, '#ffd93d')
+                }
+                triggerShake(shake, 10)
+                bgFlashAlpha = 0.3
                 break
               }
               case 'laser': {
                 // Horizontal + vertical beam: destroy all bricks in same row and col
                 spawnCollectBurst(ix, iy, '#3498db')
+                spawnStarBurst(ix, iy, '#3498db', 4)
                 hapticMedium()
+                // Draw the two beam lines
+                spawnLaserBeam(0, iy, layout.canvasW, iy, '#3498db') // horizontal
+                spawnLaserBeam(ix, 72, ix, layout.launchY, '#3498db') // vertical
                 for (const brick of state.bricks) {
                   if (brick.dead) continue
                   if (brick.row === item.row || brick.col === item.col) {
@@ -378,15 +395,18 @@ export function createEngine(
                     const rect = brickRect(brick, layout)
                     spawnBrickBreak(rect.x, rect.y, rect.w, rect.h, '#3498db')
                     spawnDestroyGlow(rect.x, rect.y, rect.w, rect.h, '#3498db')
+                    spawnHitSpark(rect.x + rect.w / 2, rect.y + rect.h / 2, '#ffffff')
                   }
                 }
-                triggerShake(shake, 6)
-                bgFlashAlpha = 0.15
+                triggerShake(shake, 7)
+                bgFlashAlpha = 0.2
                 break
               }
               case 'multiplier': {
-                // Spawn 3 extra balls at the collection point
-                spawnCollectBurst(ix, iy, '#f1c40f')
+                spawnCollectBurst(ix, iy, '#f39c12')
+                spawnStarBurst(ix, iy, '#f39c12', 8)
+                spawnHitRing(ix, iy, '#f39c12')
+                bgFlashAlpha = 0.1
                 for (let m = 0; m < 3; m++) {
                   const angle = (Math.PI / 4) + (Math.PI / 2) * (m / 2)
                   state.balls.push({
@@ -396,16 +416,15 @@ export function createEngine(
                     landed: false,
                     trail: [],
                   })
+                  // Spawn flash for each new ball
+                  spawnBallFlash(ix, iy, '#f39c12')
                 }
                 break
               }
               case 'pierce': {
-                // Make the collecting ball pierce through bricks for 3 seconds
-                // (simplified: deal 999 damage on next 5 brick hits)
                 spawnCollectBurst(ix, iy, '#9b59b6')
-                // Mark this ball as piercing by boosting its velocity slightly
-                // and temporarily making it ignore brick collision reflection
-                // Simple approach: destroy 5 nearest bricks instantly
+                spawnStarBurst(ix, iy, '#9b59b6', 6)
+                hapticMedium()
                 const aliveBricks = state.bricks
                   .filter(b => !b.dead)
                   .map(b => ({
@@ -414,13 +433,19 @@ export function createEngine(
                   }))
                   .sort((a, b) => a.dist - b.dist)
                   .slice(0, 5)
+                // Chain beam connects item → each brick
                 for (const { brick } of aliveBricks) {
+                  const rect = brickRect(brick, layout)
+                  const bcx = rect.x + rect.w / 2
+                  const bcy = rect.y + rect.h / 2
+                  spawnChainBeam(ix, iy, bcx, bcy, '#9b59b6')
                   brick.hp = 0
                   brick.dead = true
-                  const rect = brickRect(brick, layout)
                   spawnBrickBreak(rect.x, rect.y, rect.w, rect.h, '#9b59b6')
+                  spawnDestroyGlow(rect.x, rect.y, rect.w, rect.h, '#9b59b6')
                 }
-                triggerShake(shake, 4)
+                triggerShake(shake, 5)
+                bgFlashAlpha = 0.12
                 break
               }
             }

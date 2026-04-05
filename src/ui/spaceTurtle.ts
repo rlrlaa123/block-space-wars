@@ -43,7 +43,7 @@ export function drawSpaceTurtle(
   // ── Ground shadow ──
   ctx.fillStyle = 'rgba(0,0,0,0.35)'
   ctx.beginPath()
-  ctx.ellipse(0, 72, 22, 4, 0, 0, Math.PI * 2)
+  ctx.ellipse(0, 68, 26, 4, 0, 0, Math.PI * 2)
   ctx.fill()
 
   // ══════════════════════════════════════════
@@ -149,75 +149,90 @@ export function drawSpaceTurtle(
   ctx.ellipse(0, shellY, shellRx, shellRy, 0, 0, Math.PI * 2)
   ctx.stroke()
 
-  // ── Arms (slim, geometric) ──
+  // ── Arms (emerge from shell side, angled naturally) ──
   for (const s of [-1, 1]) {
-    const jx = s * (shellRx - 2)
-    const jy = shellY - 2
+    // Shoulder joint
+    const jx = s * (shellRx - 3)
+    const jy = shellY - 6
 
-    ctx.save()
-    ctx.translate(jx, jy)
-    ctx.rotate(s * 0.35)
-    // Arm darker base (thinner)
+    // Arm curves outward and down
+    const elbowX = jx + s * 8
+    const elbowY = jy + 10
+    const handX = jx + s * 12
+    const handY = jy + 22
+
+    // Arm shape (tapered path from shoulder to hand)
     ctx.fillStyle = C.bodyDark
     ctx.beginPath()
-    ctx.roundRect(-4, -2, 8, 20, 4)
+    ctx.moveTo(jx - s * 3, jy)
+    ctx.quadraticCurveTo(elbowX - s * 3, elbowY, handX - s * 3, handY - 2)
+    ctx.lineTo(handX + s * 3, handY + 2)
+    ctx.quadraticCurveTo(elbowX + s * 3, elbowY + 2, jx + s * 3, jy + 2)
+    ctx.closePath()
     ctx.fill()
-    // Arm lit side
-    ctx.fillStyle = C.bodyMid
-    ctx.beginPath()
-    ctx.roundRect(-4, -2, 4, 20, [4, 0, 0, 4])
-    ctx.fill()
-    // Rim light
+
+    // Arm lit edge (inner side catches cyan rim)
     ctx.strokeStyle = C.accent
     ctx.globalAlpha = 0.25
     ctx.lineWidth = 1
     ctx.beginPath()
-    ctx.moveTo(-4, 0); ctx.lineTo(-4, 16)
+    ctx.moveTo(jx - s * 3, jy + 1)
+    ctx.quadraticCurveTo(elbowX - s * 3, elbowY + 1, handX - s * 3, handY - 1)
     ctx.stroke()
     ctx.globalAlpha = 1
-    ctx.restore()
 
-    // Hand (smaller disc)
-    const hx = jx + Math.sin(s * 0.35) * 18
-    const hy = jy + Math.cos(s * 0.35) * 20
+    // Hand (flat disc at end)
     ctx.fillStyle = C.shellMid
     ctx.beginPath()
-    ctx.arc(hx, hy, 5.5, 0, Math.PI * 2)
+    ctx.arc(handX, handY, 5, 0, Math.PI * 2)
     ctx.fill()
     ctx.strokeStyle = C.shellRim
-    ctx.globalAlpha = 0.4
+    ctx.globalAlpha = 0.5
     ctx.lineWidth = 1
     ctx.beginPath()
-    ctx.arc(hx, hy, 5.5, Math.PI + 0.3, -0.3)
+    ctx.arc(handX, handY, 5, Math.PI + 0.3, -0.3)
     ctx.stroke()
     ctx.globalAlpha = 1
   }
 
-  // ── Legs (slimmer, below shell) ──
+  // ── Legs (emerge from bottom of shell, planted flat) ──
   for (const s of [-1, 1]) {
-    const lx = s * 12
-    const ly = 54
-    // Leg base (thinner)
+    // Hip joint at bottom of shell
+    const hipX = s * 13
+    const hipY = shellY + shellRy - 4
+    const footX = s * 15
+    const footY = hipY + 18
+
+    // Leg tapered shape
     ctx.fillStyle = C.bodyDark
     ctx.beginPath()
-    ctx.roundRect(lx - 6, ly - 4, 12, 16, [3, 3, 2, 2])
+    ctx.moveTo(hipX - 5, hipY)
+    ctx.quadraticCurveTo(hipX - s * 2 - 5, hipY + 8, footX - 6, footY - 2)
+    ctx.lineTo(footX + 6, footY)
+    ctx.quadraticCurveTo(hipX - s * 2 + 5, hipY + 10, hipX + 5, hipY + 2)
+    ctx.closePath()
     ctx.fill()
-    // Lit side
-    ctx.fillStyle = C.bodyMid
-    ctx.beginPath()
-    ctx.roundRect(lx - 6, ly - 4, 5, 16, [3, 0, 0, 2])
-    ctx.fill()
-    // Foot plate
-    ctx.fillStyle = C.shellMid
-    ctx.beginPath()
-    ctx.roundRect(lx - 7, ly + 10, 14, 3.5, 2)
-    ctx.fill()
-    // Rim
+
+    // Leg rim light (outer edge)
     ctx.strokeStyle = C.accent
     ctx.globalAlpha = 0.2
     ctx.lineWidth = 1
     ctx.beginPath()
-    ctx.moveTo(lx - 6, ly - 2); ctx.lineTo(lx - 6, ly + 8)
+    ctx.moveTo(hipX - 5, hipY + 1)
+    ctx.quadraticCurveTo(hipX - s * 2 - 5, hipY + 9, footX - 6, footY - 1)
+    ctx.stroke()
+    ctx.globalAlpha = 1
+
+    // Foot plate (flat, grounded)
+    ctx.fillStyle = C.shellMid
+    ctx.beginPath()
+    ctx.ellipse(footX, footY + 1, 10, 3, 0, 0, Math.PI * 2)
+    ctx.fill()
+    // Foot rim
+    ctx.strokeStyle = C.shellRim
+    ctx.globalAlpha = 0.3
+    ctx.beginPath()
+    ctx.ellipse(footX, footY + 1, 10, 3, 0, Math.PI + 0.2, -0.2)
     ctx.stroke()
     ctx.globalAlpha = 1
   }
