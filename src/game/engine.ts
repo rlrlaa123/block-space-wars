@@ -28,6 +28,7 @@ export interface EngineCallbacks {
   onGameOver: () => void
   onGameComplete: () => void
   onStageLoaded: (chapter: number, stage: number) => void
+  onStageCleared: (chapter: number, clearedStage: number) => boolean // return true to intercept (show interlude)
   onRetry: () => void
   onMenu: () => void
 }
@@ -187,6 +188,8 @@ export function createEngine(
       const btnY2 = h * 0.6
       if (x >= btnX2 && x <= btnX2 + btnW2 && y >= btnY2 && y <= btnY2 + btnH2) {
         e.preventDefault()
+        const clearedStage = state.currentStage
+        const clearedChapter = state.currentChapter
         // Advance stage manually
         const result = advanceStage(state)
         if (result === 'game-complete') {
@@ -194,7 +197,9 @@ export function createEngine(
         } else if (result === 'chapter-clear') {
           callbacks.onChapterClear(state.currentChapter - 1)
         } else {
-          loadStage()
+          // Check if an interlude should play before loading next stage
+          const intercepted = callbacks.onStageCleared(clearedChapter, clearedStage)
+          if (!intercepted) loadStage()
         }
         return
       }

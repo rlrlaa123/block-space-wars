@@ -110,7 +110,18 @@ export function renderParticles(ctx: CanvasRenderingContext2D) {
     ctx.save()
     ctx.translate(p.x, p.y)
     ctx.rotate(p.rotation)
-    ctx.fillRect(-s / 2, -s / 2, s, s)
+    // Irregular rock chunk shape (pentagon with varied radii)
+    ctx.beginPath()
+    const pts = 5
+    for (let i = 0; i < pts; i++) {
+      const a = (i / pts) * Math.PI * 2
+      const r = s * (0.6 + ((i * 37) % 5) * 0.12) // deterministic variance
+      const px = Math.cos(a) * r
+      const py = Math.sin(a) * r
+      i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py)
+    }
+    ctx.closePath()
+    ctx.fill()
     ctx.restore()
   }
   ctx.globalAlpha = 1

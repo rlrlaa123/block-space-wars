@@ -56,7 +56,8 @@ export default function App() {
   const ballCountRef = useRef<number | undefined>(undefined)
   // State only for UI screens that need re-render (cutscene)
   const [cutsceneChapter, setCutsceneChapter] = useState(0)
-  const [cutsceneType, setCutsceneType] = useState<'prologue' | 'epilogue'>('prologue')
+  const [cutsceneType, setCutsceneType] = useState<'prologue' | 'epilogue' | 'interlude'>('prologue')
+  const [interludeStage, setInterludeStage] = useState(0)
 
   const startGame = useCallback((chapter: number, stage = 0, ballCount?: number) => {
     chapterRef.current = chapter
@@ -115,6 +116,24 @@ export default function App() {
         saveProgress(chapter, stage, bc)
         setProgress(loadProgress())
       },
+      onStageCleared(chapter, clearedStage) {
+        // Check if an interlude exists for the NEXT stage (clearedStage + 1)
+        const nextStage = clearedStage + 1
+        const interlude = STORIES[chapter]?.interludes?.[nextStage]
+        if (!interlude || interlude.length === 0) return false
+        // Intercept: save state and show interlude
+        const bc = engineRef.current?.getBallCount() ?? 3
+        ballCountRef.current = bc
+        chapterRef.current = chapter
+        stageRef.current = nextStage
+        saveProgress(chapter, nextStage, bc)
+        setProgress(loadProgress())
+        setCutsceneChapter(chapter)
+        setInterludeStage(nextStage)
+        setCutsceneType('interlude')
+        setScreen('cutscene-interlude')
+        return true
+      },
     }, chapterRef.current, stageRef.current, ballCountRef.current ?? loadProgress().ballCount)
 
     engineRef.current = engine
@@ -144,10 +163,14 @@ export default function App() {
     )
   }
 
-  if (screen === 'cutscene-prologue' || screen === 'cutscene-epilogue') {
+  if (screen === 'cutscene-prologue' || screen === 'cutscene-epilogue' || screen === 'cutscene-interlude') {
     const story = STORIES[cutsceneChapter]
     const chapter = CHAPTERS[cutsceneChapter]
-    const screens = cutsceneType === 'prologue' ? story.prologue : story.epilogue
+    const screens = cutsceneType === 'prologue'
+      ? story.prologue
+      : cutsceneType === 'epilogue'
+        ? story.epilogue
+        : (story.interludes?.[interludeStage] ?? [])
     return (
       <Cutscene
         screens={screens}
@@ -156,6 +179,9 @@ export default function App() {
         onComplete={() => {
           if (cutsceneType === 'prologue') {
             startGameplay()
+          } else if (cutsceneType === 'interlude') {
+            // Resume gameplay on the next stage
+            setScreen('game')
           } else if (cutsceneChapter >= TOTAL_CHAPTERS - 1) {
             setScreen('title')
           } else {

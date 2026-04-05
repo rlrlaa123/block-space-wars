@@ -15,6 +15,7 @@ export type AppScreen =
   | 'title'
   | 'chapter-select'
   | 'cutscene-prologue'
+  | 'cutscene-interlude'
   | 'game'
   | 'cutscene-epilogue'
   | 'game-over'
