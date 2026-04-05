@@ -74,8 +74,15 @@ export function spawnBall(ball: Ball, launchX: number, launchY: number, angle: n
 export function recallBalls(state: GameState, launchY: number) {
   if (state.phase !== 'firing') return
   for (const ball of state.balls) {
-    if (ball.landed || ball.pos.y < -900) continue
-    // Aim directly down toward launch line
+    if (ball.landed) continue
+    // Unspawned balls: mark as already landed so they never fire
+    if (ball.pos.y < -900) {
+      ball.landed = true
+      ball.pos.x = state.firstLandedX ?? state.launchX
+      ball.pos.y = launchY
+      continue
+    }
+    // In-flight balls: redirect toward landing position
     const dx = state.launchX - ball.pos.x
     const dy = launchY - ball.pos.y
     const dist = Math.sqrt(dx * dx + dy * dy)
