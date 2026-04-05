@@ -43,7 +43,7 @@ export function drawSpaceTurtle(
   // ── Ground shadow ──
   ctx.fillStyle = 'rgba(0,0,0,0.35)'
   ctx.beginPath()
-  ctx.ellipse(0, 60, 26, 4, 0, 0, Math.PI * 2)
+  ctx.ellipse(0, 72, 22, 4, 0, 0, Math.PI * 2)
   ctx.fill()
 
   // ══════════════════════════════════════════
@@ -51,11 +51,10 @@ export function drawSpaceTurtle(
   //  Geometric shapes, flat shading with rim lights
   // ══════════════════════════════════════════
 
-  // ── Shell (main body, geometric dome) ──
-  // The shell IS the body/torso — slimmer, more refined silhouette
-  const shellY = 10
-  const shellRx = 34
-  const shellRy = 28
+  // ── Shell (vertical oval, taller than wide) ──
+  const shellY = 12
+  const shellRx = 28
+  const shellRy = 36
 
   // Drop shadow behind shell
   ctx.fillStyle = 'rgba(0,0,0,0.4)'
@@ -84,22 +83,23 @@ export function drawSpaceTurtle(
   // Light tone covers top third (angular cut)
   ctx.fillStyle = C.shellLight
   ctx.beginPath()
-  ctx.moveTo(-shellRx, shellY - 14)
-  ctx.lineTo(shellRx, shellY - 20)
+  ctx.moveTo(-shellRx, shellY - 18)
+  ctx.lineTo(shellRx, shellY - 24)
   ctx.lineTo(shellRx, -shellRy + shellY)
   ctx.lineTo(-shellRx, -shellRy + shellY)
   ctx.closePath()
   ctx.fill()
 
-  // Shell geometric pattern — hex tiles, restrained
+  // Shell geometric pattern — hex tiles, vertical arrangement
   ctx.strokeStyle = 'rgba(255,255,255,0.08)'
   ctx.lineWidth = 1
   const hexR = 8
   const hexPositions: [number, number][] = [
-    [0, -2],
-    [-14, 2], [14, 2],
-    [-7, 12], [7, 12],
-    [-21, 12], [21, 12],
+    [0, -14],
+    [-12, -6], [12, -6],
+    [0, 0],
+    [-12, 8], [12, 8],
+    [0, 14],
   ]
   for (const [hx, hy] of hexPositions) {
     ctx.beginPath()
@@ -195,8 +195,8 @@ export function drawSpaceTurtle(
 
   // ── Legs (slimmer, below shell) ──
   for (const s of [-1, 1]) {
-    const lx = s * 14
-    const ly = 42
+    const lx = s * 12
+    const ly = 54
     // Leg base (thinner)
     ctx.fillStyle = C.bodyDark
     ctx.beginPath()
@@ -246,7 +246,7 @@ export function drawSpaceTurtle(
   //  HELMET (geometric dome, dark visor)
   //  This is the focal point
   // ══════════════════════════════════════════
-  const hY = -32
+  const hY = -42
   const hR = 26
 
   // Helmet shadow
