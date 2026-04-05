@@ -89,7 +89,9 @@ function rgbStr(r: number, g: number, b: number, a = 1): string {
   return a < 1 ? `rgba(${r},${g},${b},${a})` : `rgb(${r},${g},${b})`
 }
 
-// ── Shared 3D block drawing (candy/gem style) ──
+// ── Shared geometric block drawing (flat, minimal, rim-lit) ──
+// Style: matches space turtle aesthetic — crisp silhouette, flat shading,
+// single cyan rim light, subtle diagonal depth
 
 function draw3DBlock(
   ctx: CanvasRenderingContext2D,
@@ -97,70 +99,68 @@ function draw3DBlock(
   baseColor: string, rad: number,
 ) {
   const [br, bg, bb] = hexRgb(baseColor)
-  const edge = 3 // depth of 3D extrusion
+  const edge = 2
 
-  // 1) Outer shadow (ambient occlusion)
-  ctx.fillStyle = 'rgba(0,0,0,0.3)'
+  // 1) Drop shadow (crisp offset, not soft blur)
+  ctx.fillStyle = 'rgba(0,0,0,0.35)'
   ctx.beginPath()
-  ctx.roundRect(x + 1, y + 2, w, h + 1, rad)
+  ctx.roundRect(x + 1, y + 2, w, h, rad)
   ctx.fill()
 
-  // 2) Bottom face (dark extruded edge - gives strong 3D)
+  // 2) Dark base (full silhouette)
   ctx.fillStyle = rgbStr(
-    Math.round(br * 0.35), Math.round(bg * 0.35), Math.round(bb * 0.35),
+    Math.round(br * 0.25), Math.round(bg * 0.25), Math.round(bb * 0.25),
   )
   ctx.beginPath()
-  ctx.roundRect(x, y + edge, w, h - edge + 1, rad)
+  ctx.roundRect(x, y, w, h, rad)
   ctx.fill()
 
-  // 3) Right face edge
-  ctx.fillStyle = rgbStr(
-    Math.round(br * 0.45), Math.round(bg * 0.45), Math.round(bb * 0.45),
-  )
-  ctx.beginPath()
-  ctx.roundRect(x + 2, y + 1, w - 2, h - 1, rad)
-  ctx.fill()
-
-  // 4) Main face (center block, slightly inset)
-  const faceGrad = ctx.createLinearGradient(x, y, x, y + h - edge)
-  faceGrad.addColorStop(0, rgbStr(
-    Math.min(255, br + 60), Math.min(255, bg + 60), Math.min(255, bb + 60),
-  ))
-  faceGrad.addColorStop(0.35, baseColor)
-  faceGrad.addColorStop(1, rgbStr(
-    Math.round(br * 0.65), Math.round(bg * 0.65), Math.round(bb * 0.65),
-  ))
-  ctx.fillStyle = faceGrad
+  // 3) Main face — flat 2-tone split (diagonal light source)
+  // Upper-left lit portion
+  ctx.fillStyle = baseColor
   ctx.beginPath()
   ctx.roundRect(x, y, w - 1, h - edge, rad)
   ctx.fill()
 
-  // 5) Top-left specular highlight (makes it look shiny/glossy)
-  const specGrad = ctx.createRadialGradient(
-    x + w * 0.3, y + (h - edge) * 0.25, 0,
-    x + w * 0.3, y + (h - edge) * 0.25, w * 0.6,
-  )
-  specGrad.addColorStop(0, 'rgba(255,255,255,0.45)')
-  specGrad.addColorStop(0.4, 'rgba(255,255,255,0.1)')
-  specGrad.addColorStop(1, 'rgba(255,255,255,0)')
-  ctx.fillStyle = specGrad
+  // 4) Bottom-right shadow wedge (angular cut, Monument Valley style)
+  ctx.save()
   ctx.beginPath()
-  ctx.roundRect(x + 1, y + 1, w - 3, (h - edge) * 0.6, [rad, rad, 0, 0])
+  ctx.roundRect(x, y, w - 1, h - edge, rad)
+  ctx.clip()
+  ctx.fillStyle = rgbStr(
+    Math.round(br * 0.6), Math.round(bg * 0.6), Math.round(bb * 0.6),
+  )
+  ctx.beginPath()
+  ctx.moveTo(x - 1, y + h * 0.55)
+  ctx.lineTo(x + w + 1, y + h * 0.3)
+  ctx.lineTo(x + w + 1, y + h + 1)
+  ctx.lineTo(x - 1, y + h + 1)
+  ctx.closePath()
   ctx.fill()
+  ctx.restore()
 
-  // 6) Top edge bright line (rim light)
-  ctx.strokeStyle = `rgba(255,255,255,0.3)`
+  // 5) Top edge rim light (cyan accent, matches turtle)
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)'
   ctx.lineWidth = 1
   ctx.beginPath()
-  ctx.moveTo(x + rad, y + 0.5)
-  ctx.lineTo(x + w - rad - 1, y + 0.5)
+  ctx.moveTo(x + rad - 0.5, y + 0.5)
+  ctx.lineTo(x + w - rad, y + 0.5)
   ctx.stroke()
 
-  // 7) Left edge bright line
-  ctx.strokeStyle = 'rgba(255,255,255,0.15)'
+  // 6) Left edge rim
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)'
   ctx.beginPath()
   ctx.moveTo(x + 0.5, y + rad)
-  ctx.lineTo(x + 0.5, y + h - edge - rad)
+  ctx.lineTo(x + 0.5, y + h - rad - edge)
+  ctx.stroke()
+
+  // 7) Crisp dark outline (silhouette definition)
+  ctx.strokeStyle = rgbStr(
+    Math.round(br * 0.15), Math.round(bg * 0.15), Math.round(bb * 0.15),
+  )
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.roundRect(x + 0.5, y + 0.5, w - 1, h - 1, rad)
   ctx.stroke()
 }
 
@@ -186,7 +186,7 @@ function drawBrick(
   if (brick.dead) return
   const { x, y, w, h } = brickRect(brick, layout)
   const base = getBrickBase(brick, brickColor, accentColor)
-  const rad = Math.min(w, h) * 0.15
+  const rad = Math.min(w, h) * 0.1 // tighter corners, more geometric
 
   if (brick.flashTimer > 0) {
     brick.flashTimer--
@@ -285,7 +285,7 @@ function drawItem(ctx: CanvasRenderingContext2D, item: Item, layout: LayoutInfo)
   const ih = layout.cellSize - pad * 2
   const cx = cellX + layout.cellSize / 2
   const cy = cellY + layout.cellSize / 2
-  const rad = Math.min(iw, ih) * 0.22
+  const rad = Math.min(iw, ih) * 0.15
 
   const colorMap: Record<string, string> = {
     ball: '#2ecc71', bomb: '#e74c3c', laser: '#3498db',
@@ -293,14 +293,14 @@ function drawItem(ctx: CanvasRenderingContext2D, item: Item, layout: LayoutInfo)
   }
   const base = colorMap[item.type] ?? '#f1c40f'
 
-  // Soft halo glow
-  ctx.globalAlpha = 0.2
-  const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, iw * 0.9)
+  // Subtle halo glow
+  ctx.globalAlpha = 0.15
+  const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, iw * 0.7)
   glow.addColorStop(0, base)
   glow.addColorStop(1, 'transparent')
   ctx.fillStyle = glow
   ctx.beginPath()
-  ctx.arc(cx, cy, iw * 0.9, 0, Math.PI * 2)
+  ctx.arc(cx, cy, iw * 0.7, 0, Math.PI * 2)
   ctx.fill()
   ctx.globalAlpha = 1
 

@@ -43,7 +43,7 @@ export function drawSpaceTurtle(
   // ── Ground shadow ──
   ctx.fillStyle = 'rgba(0,0,0,0.35)'
   ctx.beginPath()
-  ctx.ellipse(0, 68, 32, 5, 0, 0, Math.PI * 2)
+  ctx.ellipse(0, 60, 26, 4, 0, 0, Math.PI * 2)
   ctx.fill()
 
   // ══════════════════════════════════════════
@@ -52,10 +52,10 @@ export function drawSpaceTurtle(
   // ══════════════════════════════════════════
 
   // ── Shell (main body, geometric dome) ──
-  // The shell IS the body/torso — turtle wears minimal suit
-  const shellY = 8
-  const shellRx = 44
-  const shellRy = 38
+  // The shell IS the body/torso — slimmer, more refined silhouette
+  const shellY = 10
+  const shellRx = 34
+  const shellRy = 28
 
   // Drop shadow behind shell
   ctx.fillStyle = 'rgba(0,0,0,0.4)'
@@ -84,8 +84,8 @@ export function drawSpaceTurtle(
   // Light tone covers top third (angular cut)
   ctx.fillStyle = C.shellLight
   ctx.beginPath()
-  ctx.moveTo(-shellRx, shellY - 18)
-  ctx.lineTo(shellRx, shellY - 26)
+  ctx.moveTo(-shellRx, shellY - 14)
+  ctx.lineTo(shellRx, shellY - 20)
   ctx.lineTo(shellRx, -shellRy + shellY)
   ctx.lineTo(-shellRx, -shellRy + shellY)
   ctx.closePath()
@@ -93,13 +93,13 @@ export function drawSpaceTurtle(
 
   // Shell geometric pattern — hex tiles, restrained
   ctx.strokeStyle = 'rgba(255,255,255,0.08)'
-  ctx.lineWidth = 1.2
-  const hexR = 11
+  ctx.lineWidth = 1
+  const hexR = 8
   const hexPositions: [number, number][] = [
     [0, -2],
-    [-18, 4], [18, 4],
-    [-9, 16], [9, 16],
-    [-27, 16], [27, 16],
+    [-14, 2], [14, 2],
+    [-7, 12], [7, 12],
+    [-21, 12], [21, 12],
   ]
   for (const [hx, hy] of hexPositions) {
     ctx.beginPath()
@@ -149,98 +149,96 @@ export function drawSpaceTurtle(
   ctx.ellipse(0, shellY, shellRx, shellRy, 0, 0, Math.PI * 2)
   ctx.stroke()
 
-  // ── Arms (minimal, geometric) ──
+  // ── Arms (slim, geometric) ──
   for (const s of [-1, 1]) {
-    // Shoulder joint (where arm emerges from shell edge)
-    const jx = s * (shellRx - 4)
-    const jy = shellY - 4
+    const jx = s * (shellRx - 2)
+    const jy = shellY - 2
 
-    // Arm — simple capsule
     ctx.save()
     ctx.translate(jx, jy)
-    ctx.rotate(s * 0.4)
-    // Arm darker base
+    ctx.rotate(s * 0.35)
+    // Arm darker base (thinner)
     ctx.fillStyle = C.bodyDark
     ctx.beginPath()
-    ctx.roundRect(-5, -2, 10, 22, 5)
+    ctx.roundRect(-4, -2, 8, 20, 4)
     ctx.fill()
     // Arm lit side
     ctx.fillStyle = C.bodyMid
     ctx.beginPath()
-    ctx.roundRect(-5, -2, 5, 22, [5, 0, 0, 5])
+    ctx.roundRect(-4, -2, 4, 20, [4, 0, 0, 4])
     ctx.fill()
-    // Rim light on arm
+    // Rim light
     ctx.strokeStyle = C.accent
     ctx.globalAlpha = 0.25
     ctx.lineWidth = 1
     ctx.beginPath()
-    ctx.moveTo(-5, 0); ctx.lineTo(-5, 18)
+    ctx.moveTo(-4, 0); ctx.lineTo(-4, 16)
     ctx.stroke()
     ctx.globalAlpha = 1
     ctx.restore()
 
-    // Hand/glove (flat teal disc)
-    const hx = jx + Math.sin(s * 0.4) * 20
-    const hy = jy + Math.cos(s * 0.4) * 22
+    // Hand (smaller disc)
+    const hx = jx + Math.sin(s * 0.35) * 18
+    const hy = jy + Math.cos(s * 0.35) * 20
     ctx.fillStyle = C.shellMid
     ctx.beginPath()
-    ctx.arc(hx, hy, 7, 0, Math.PI * 2)
+    ctx.arc(hx, hy, 5.5, 0, Math.PI * 2)
     ctx.fill()
     ctx.strokeStyle = C.shellRim
     ctx.globalAlpha = 0.4
     ctx.lineWidth = 1
     ctx.beginPath()
-    ctx.arc(hx, hy, 7, Math.PI + 0.3, -0.3)
+    ctx.arc(hx, hy, 5.5, Math.PI + 0.3, -0.3)
     ctx.stroke()
     ctx.globalAlpha = 1
   }
 
-  // ── Legs (below shell, stubby and geometric) ──
+  // ── Legs (slimmer, below shell) ──
   for (const s of [-1, 1]) {
-    const lx = s * 18
-    const ly = 48
-    // Leg base (dark)
+    const lx = s * 14
+    const ly = 42
+    // Leg base (thinner)
     ctx.fillStyle = C.bodyDark
     ctx.beginPath()
-    ctx.roundRect(lx - 8, ly - 6, 16, 18, [4, 4, 2, 2])
+    ctx.roundRect(lx - 6, ly - 4, 12, 16, [3, 3, 2, 2])
     ctx.fill()
     // Lit side
     ctx.fillStyle = C.bodyMid
     ctx.beginPath()
-    ctx.roundRect(lx - 8, ly - 6, 6, 18, [4, 0, 0, 2])
+    ctx.roundRect(lx - 6, ly - 4, 5, 16, [3, 0, 0, 2])
     ctx.fill()
     // Foot plate
     ctx.fillStyle = C.shellMid
     ctx.beginPath()
-    ctx.roundRect(lx - 9, ly + 10, 18, 4, 2)
+    ctx.roundRect(lx - 7, ly + 10, 14, 3.5, 2)
     ctx.fill()
     // Rim
     ctx.strokeStyle = C.accent
     ctx.globalAlpha = 0.2
     ctx.lineWidth = 1
     ctx.beginPath()
-    ctx.moveTo(lx - 8, ly - 4); ctx.lineTo(lx - 8, ly + 10)
+    ctx.moveTo(lx - 6, ly - 2); ctx.lineTo(lx - 6, ly + 8)
     ctx.stroke()
     ctx.globalAlpha = 1
   }
 
-  // ── Neck (minimal, geometric) ──
-  const neckBase = shellY - shellRy + 12
+  // ── Neck (slim, geometric trapezoid) ──
+  const neckBase = shellY - shellRy + 8
   ctx.fillStyle = C.bodyDark
   ctx.beginPath()
-  ctx.moveTo(-8, neckBase)
-  ctx.lineTo(-10, neckBase - 18)
-  ctx.lineTo(10, neckBase - 18)
-  ctx.lineTo(8, neckBase)
+  ctx.moveTo(-6, neckBase)
+  ctx.lineTo(-8, neckBase - 16)
+  ctx.lineTo(8, neckBase - 16)
+  ctx.lineTo(6, neckBase)
   ctx.closePath()
   ctx.fill()
   // Neck lit edge
   ctx.fillStyle = C.bodyMid
   ctx.beginPath()
-  ctx.moveTo(-8, neckBase)
-  ctx.lineTo(-10, neckBase - 18)
-  ctx.lineTo(-5, neckBase - 18)
-  ctx.lineTo(-4, neckBase)
+  ctx.moveTo(-6, neckBase)
+  ctx.lineTo(-8, neckBase - 16)
+  ctx.lineTo(-4, neckBase - 16)
+  ctx.lineTo(-3, neckBase)
   ctx.closePath()
   ctx.fill()
 
@@ -248,8 +246,8 @@ export function drawSpaceTurtle(
   //  HELMET (geometric dome, dark visor)
   //  This is the focal point
   // ══════════════════════════════════════════
-  const hY = -38
-  const hR = 30
+  const hY = -32
+  const hR = 26
 
   // Helmet shadow
   ctx.fillStyle = 'rgba(0,0,0,0.5)'
