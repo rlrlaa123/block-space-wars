@@ -40,7 +40,9 @@ export function setupInput(
     }
   }
 
-  function handleStart(clientX: number, clientY: number) {
+  let recalled = false
+
+  function handleStart(clientX: number, clientY: number): boolean {
     const pos = toCanvasCoords(clientX, clientY)
 
     // Check recall button area (bottom 60px of canvas)
@@ -48,13 +50,21 @@ export function setupInput(
     const canvasH = rect.height
     if (pos.y > canvasH - 60 && onRecall) {
       onRecall()
-      return
+      recalled = true
+      return true // handled
+    }
+
+    // Also skip menu button area (top-left HUD: 8,8,44,36)
+    if (pos.x >= 8 && pos.x <= 52 && pos.y >= 8 && pos.y <= 44) {
+      recalled = true
+      return true // treat as non-aim tap
     }
 
     const angle = calcAngle(launchXFn(), launchYFn(), pos.x, pos.y)
     input.aimAngle = angle
     input.isDragging = true
     onAimStart(angle)
+    return false
   }
 
   function handleMove(clientX: number, clientY: number) {
@@ -69,6 +79,7 @@ export function setupInput(
     e.preventDefault()
     if (input.touchId !== null) return
     const touch = e.changedTouches[0]
+    recalled = false
     input.touchId = touch.identifier
     handleStart(touch.clientX, touch.clientY)
   }
@@ -88,7 +99,8 @@ export function setupInput(
       if (e.changedTouches[i].identifier === input.touchId) {
         input.touchId = null
         input.isDragging = false
-        onFire()
+        if (!recalled) onFire()
+        recalled = false
         break
       }
     }
@@ -108,6 +120,7 @@ export function setupInput(
 
   const onMouseDown = (e: MouseEvent) => {
     mouseDown = true
+    recalled = false
     handleStart(e.clientX, e.clientY)
   }
   const onMouseMove = (e: MouseEvent) => {
@@ -118,7 +131,8 @@ export function setupInput(
     if (!mouseDown) return
     mouseDown = false
     input.isDragging = false
-    onFire()
+    if (!recalled) onFire()
+    recalled = false
   }
 
   canvas.addEventListener('mousedown', onMouseDown)

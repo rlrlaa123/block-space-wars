@@ -6,7 +6,7 @@ import {
   renderGlowEffects, renderBgWaves, renderFloorImpacts,
   renderComboTexts, renderConfetti,
 } from '../effects/particles'
-import { BALL_RADIUS, BRICK_GAP, SHIELD_ARC_DEG } from './constants'
+import { BALL_RADIUS, BRICK_GAP, SHIELD_ARC_DEG, STAGE_TOTAL_ROWS } from './constants'
 
 // ── Star field ──
 let stars: { x: number; y: number; size: number; phase: number }[] = []
@@ -474,13 +474,32 @@ function drawHUD(ctx: CanvasRenderingContext2D, state: GameState, layout: Layout
   ctx.fillStyle = '#f5a623'
   ctx.fillText(`×${state.ballCount}`, 26, bottomMid)
 
-  // Progress bar (below top bar)
-  if (state.totalBricksSpawned > 0) {
+  // Progress bar — uses rowsSpawned for monotonic progress (never decreases)
+  {
+    const totalRows = STAGE_TOTAL_ROWS[state.currentChapter] ?? 10
+    const aliveBricks = state.bricks.filter(b => !b.dead).length
+    // Stage clear happens when all rows spawned AND 0 alive.
+    // Progress = rows spawned portion + fraction cleared of current alive bricks
+    const rowsPct = Math.min(1, state.rowsSpawned / totalRows)
+    const clearBonus = state.rowsSpawned >= totalRows && state.totalBricksSpawned > 0
+      ? (1 - aliveBricks / Math.max(1, state.bricks.length)) * 0
+      : 0
+    // Simpler: just rowsSpawned / totalRows, capped at "almost there" until all clear
+    let pct = rowsPct
+    if (state.rowsSpawned >= totalRows) {
+      // All rows spawned — show 90% until aliveBricks = 0, then 100%
+      const cleared = state.totalBricksSpawned > 0
+        ? state.bricksDestroyed / state.totalBricksSpawned
+        : 0
+      pct = 0.9 + cleared * 0.1
+    } else {
+      pct = rowsPct * 0.9
+    }
+    void clearBonus
     const barX = 60
     const barY = 56
     const barW = w - 120
     const barH = 6
-    const pct = Math.min(1, state.bricksDestroyed / state.totalBricksSpawned)
 
     // Background
     ctx.fillStyle = 'rgba(255,255,255,0.15)'

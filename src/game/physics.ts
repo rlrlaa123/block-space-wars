@@ -243,6 +243,8 @@ export function predictTrajectory(
   layout: LayoutInfo,
   bounces: number = 3,
 ): Vec2[] {
+  const r = BALL_RADIUS
+  const topY = 72 // matches wallBounce in engine
   const points: Vec2[] = [{ x: startX, y: startY }]
   let x = startX
   let y = startY
@@ -250,24 +252,23 @@ export function predictTrajectory(
   let vy = -Math.sin(angle) // negative because canvas y is down
 
   for (let b = 0; b < bounces; b++) {
-    // Find next wall intersection
     let minT = Infinity
     let hitNx = 0
     let hitNy = 0
 
-    // Left wall
+    // Left wall (x - r = 0 → x = r)
     if (vx < 0) {
-      const t = -x / vx
+      const t = (r - x) / vx
       if (t > 0 && t < minT) { minT = t; hitNx = 1; hitNy = 0 }
     }
-    // Right wall
+    // Right wall (x + r = canvasW → x = canvasW - r)
     if (vx > 0) {
-      const t = (layout.canvasW - x) / vx
+      const t = (layout.canvasW - r - x) / vx
       if (t > 0 && t < minT) { minT = t; hitNx = -1; hitNy = 0 }
     }
-    // Top wall
+    // Top wall (y - r = topY → y = topY + r)
     if (vy < 0) {
-      const t = -y / vy
+      const t = (topY + r - y) / vy
       if (t > 0 && t < minT) { minT = t; hitNx = 0; hitNy = 1 }
     }
 
@@ -276,7 +277,6 @@ export function predictTrajectory(
     y += vy * minT
     points.push({ x, y })
 
-    // Reflect
     const dot = vx * hitNx + vy * hitNy
     vx -= 2 * dot * hitNx
     vy -= 2 * dot * hitNy
