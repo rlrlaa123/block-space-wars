@@ -61,10 +61,13 @@ export const MIN_TOUCH_TARGET = 44     // pixels
 export const STAGES_PER_CHAPTER = 10
 export const TOTAL_CHAPTERS = 5
 
+// HP range stays LOW across all chapters (max 5). Difficulty comes from
+// MORE bricks per row and HIGHER density, not higher HP per brick.
+// This keeps "satisfying brick destruction" as the core gameplay feel.
 export const CHAPTERS: ChapterConfig[] = [
   {
     name: '용왕의 명령',
-    hpRange: [1, 3],
+    hpRange: [1, 2],
     itemRate: 0.8,
     specialBrickRate: 0,
     specialBrickTypes: [],
@@ -74,7 +77,7 @@ export const CHAPTERS: ChapterConfig[] = [
   },
   {
     name: '우주로의 출발',
-    hpRange: [3, 8],
+    hpRange: [1, 3],
     itemRate: 0.6,
     specialBrickRate: 0.15,
     specialBrickTypes: ['gravity-well'],
@@ -84,7 +87,7 @@ export const CHAPTERS: ChapterConfig[] = [
   },
   {
     name: '토끼별 도착',
-    hpRange: [5, 15],
+    hpRange: [2, 4],
     itemRate: 0.5,
     specialBrickRate: 0.2,
     specialBrickTypes: ['gravity-well', 'shield'],
@@ -94,7 +97,7 @@ export const CHAPTERS: ChapterConfig[] = [
   },
   {
     name: '속임수',
-    hpRange: [8, 25],
+    hpRange: [2, 5],
     itemRate: 0.4,
     specialBrickRate: 0.25,
     specialBrickTypes: ['gravity-well', 'shield', 'splitter'],
@@ -104,7 +107,7 @@ export const CHAPTERS: ChapterConfig[] = [
   },
   {
     name: '토끼의 역습',
-    hpRange: [12, 40],
+    hpRange: [3, 5],
     itemRate: 0.35,
     specialBrickRate: 0.3,
     specialBrickTypes: ['gravity-well', 'shield', 'splitter'],

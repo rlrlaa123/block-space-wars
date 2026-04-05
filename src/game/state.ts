@@ -135,8 +135,10 @@ export function generateNewRow(state: GameState): { bricks: Brick[], items: Item
   const bricks: Brick[] = []
   const items: Item[] = []
 
-  // How many bricks in this row? 4-6 based on chapter
-  const brickCount = Math.min(6, 4 + Math.floor(state.currentChapter / 2))
+  // Brick count scales with chapter AND stage (more density = harder)
+  // Ch1: 3-5, Ch2: 4-6, Ch3: 4-7, Ch4: 5-7, Ch5: 5-8
+  const baseBrickCount = 3 + state.currentChapter + Math.floor(state.currentStage / 4)
+  const brickCount = Math.min(GRID_COLS, baseBrickCount + (Math.random() < 0.3 ? 1 : 0))
 
   // Shuffle column positions
   const cols = Array.from({ length: GRID_COLS }, (_, i) => i)
@@ -146,12 +148,11 @@ export function generateNewRow(state: GameState): { bricks: Brick[], items: Item
   }
   const selectedCols = cols.slice(0, brickCount)
 
+  // HP stays LOW — use chapter's hpRange directly, capped at 5
+  const [minHp, maxHp] = chapter.hpRange
+
   for (const col of selectedCols) {
-    // HP scales with ball count (brick-blitz style)
-    const scale = 0.4 + (state.currentChapter * 10 + state.currentStage) * 0.06
-    const baseHp = Math.ceil(state.ballCount * scale)
-    const variance = Math.floor(baseHp * 0.3 * (Math.random() * 2 - 1))
-    const hp = Math.max(1, baseHp + variance)
+    const hp = Math.min(5, Math.floor(Math.random() * (maxHp - minHp + 1)) + minHp)
 
     // Special brick type chance
     let type: BrickType = 'basic'

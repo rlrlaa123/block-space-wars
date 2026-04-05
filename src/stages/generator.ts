@@ -39,10 +39,9 @@ export function generateStage(chapter: number, stage: number): Stage {
         type = randomBrickType(config.specialBrickTypes)
       }
 
-      // HP scales with chapter + stage
+      // HP stays in chapter's low range, no stage multiplier
       const [minHp, maxHp] = config.hpRange
-      const stageScale = 1 + (stage / STAGES_PER_CHAPTER) * 0.5
-      const hp = Math.ceil(randomInt(minHp, maxHp) * stageScale)
+      const hp = Math.min(5, randomInt(minHp, maxHp))
 
       const brick: Brick = {
         row, col, hp, maxHp: hp,
