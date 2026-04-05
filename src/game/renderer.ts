@@ -91,7 +91,13 @@ function rgbStr(r: number, g: number, b: number, a = 1): string {
   return a < 1 ? `rgba(${r},${g},${b},${a})` : `rgb(${r},${g},${b})`
 }
 
-// ── Block drawing: sci-fi chamfered panel (matches turtle shell pattern) ──
+// ── Block drawing: asteroid (irregular rocky shape) ──
+
+// Deterministic pseudo-random from seed (so each brick is stable across frames)
+function hash(seed: number): number {
+  let x = Math.sin(seed) * 10000
+  return x - Math.floor(x)
+}
 
 function draw3DBlock(
   ctx: CanvasRenderingContext2D,
@@ -99,121 +105,149 @@ function draw3DBlock(
   baseColor: string, _rad: number,
 ) {
   const [br, bg, bb] = hexRgb(baseColor)
-  const chamfer = Math.min(w, h) * 0.2  // angled corner cuts
+  // Deterministic seed based on position — same brick always looks the same
+  const seed = Math.floor(x * 13.7 + y * 7.3)
+  const cx = x + w / 2
+  const cy = y + h / 2
+  const rx = w / 2 - 1
+  const ry = h / 2 - 1
 
-  // Helper: build chamfered hex-ish panel path
-  const panelPath = (px: number, py: number, pw: number, ph: number) => {
+  // Build irregular polygon vertices (8-10 points around center)
+  const numPoints = 9
+  const vertices: [number, number][] = []
+  for (let i = 0; i < numPoints; i++) {
+    const angle = (i / numPoints) * Math.PI * 2 - Math.PI / 2
+    // Each point has irregular radius (0.75-1.0 of base)
+    const r = 0.78 + hash(seed * 3 + i) * 0.22
+    const px = cx + Math.cos(angle) * rx * r
+    const py = cy + Math.sin(angle) * ry * r
+    vertices.push([px, py])
+  }
+
+  const asteroidPath = () => {
     ctx.beginPath()
-    ctx.moveTo(px + chamfer, py)
-    ctx.lineTo(px + pw - chamfer, py)
-    ctx.lineTo(px + pw, py + chamfer)
-    ctx.lineTo(px + pw, py + ph - chamfer)
-    ctx.lineTo(px + pw - chamfer, py + ph)
-    ctx.lineTo(px + chamfer, py + ph)
-    ctx.lineTo(px, py + ph - chamfer)
-    ctx.lineTo(px, py + chamfer)
+    ctx.moveTo(vertices[0][0], vertices[0][1])
+    for (let i = 1; i < vertices.length; i++) {
+      ctx.lineTo(vertices[i][0], vertices[i][1])
+    }
     ctx.closePath()
   }
 
   // 1) Drop shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.45)'
-  panelPath(x + 1, y + 2, w, h)
-  ctx.fill()
-
-  // 2) Dark base (fills whole panel shape)
-  ctx.fillStyle = rgbStr(
-    Math.round(br * 0.22), Math.round(bg * 0.22), Math.round(bb * 0.22),
-  )
-  panelPath(x, y, w, h)
-  ctx.fill()
-
-  // 3) Lit face (upper-left half, diagonal split)
   ctx.save()
-  panelPath(x, y, w, h)
-  ctx.clip()
-  // Top-left lit zone
-  ctx.fillStyle = baseColor
-  ctx.beginPath()
-  ctx.moveTo(x - 1, y - 1)
-  ctx.lineTo(x + w + 1, y - 1)
-  ctx.lineTo(x + w + 1, y + h * 0.4)
-  ctx.lineTo(x - 1, y + h * 0.75)
-  ctx.closePath()
-  ctx.fill()
-  // Bottom-right shaded zone
-  ctx.fillStyle = rgbStr(
-    Math.round(br * 0.55), Math.round(bg * 0.55), Math.round(bb * 0.55),
-  )
-  ctx.beginPath()
-  ctx.moveTo(x - 1, y + h * 0.75)
-  ctx.lineTo(x + w + 1, y + h * 0.4)
-  ctx.lineTo(x + w + 1, y + h + 1)
-  ctx.lineTo(x - 1, y + h + 1)
-  ctx.closePath()
+  ctx.translate(1, 2)
+  ctx.fillStyle = 'rgba(0,0,0,0.5)'
+  asteroidPath()
   ctx.fill()
   ctx.restore()
 
-  // 4) Inner diagonal seam line (where light meets shadow)
+  // 2) Dark base silhouette
+  ctx.fillStyle = rgbStr(
+    Math.round(br * 0.2), Math.round(bg * 0.2), Math.round(bb * 0.2),
+  )
+  asteroidPath()
+  ctx.fill()
+
+  // 3) Lit face (top-left half, flat shading)
+  ctx.save()
+  asteroidPath()
+  ctx.clip()
+
+  // Base mid tone covers everything
+  ctx.fillStyle = rgbStr(
+    Math.round(br * 0.55), Math.round(bg * 0.55), Math.round(bb * 0.55),
+  )
+  ctx.fillRect(x - 2, y - 2, w + 4, h + 4)
+
+  // Lit zone (diagonal from top-left)
+  ctx.fillStyle = baseColor
+  ctx.beginPath()
+  ctx.moveTo(x - 2, y - 2)
+  ctx.lineTo(x + w + 2, y - 2)
+  ctx.lineTo(x + w + 2, y + h * 0.3)
+  ctx.lineTo(x - 2, y + h * 0.7)
+  ctx.closePath()
+  ctx.fill()
+
+  // Highlight zone (brighter, smaller)
+  ctx.fillStyle = rgbStr(
+    Math.min(255, br + 30), Math.min(255, bg + 30), Math.min(255, bb + 30),
+  )
+  ctx.beginPath()
+  ctx.moveTo(x - 2, y - 2)
+  ctx.lineTo(x + w * 0.7, y - 2)
+  ctx.lineTo(x - 2, y + h * 0.4)
+  ctx.closePath()
+  ctx.fill()
+
+  // Craters (dark pits on surface)
+  const numCraters = 3
+  for (let i = 0; i < numCraters; i++) {
+    const ca = hash(seed * 5 + i * 2) * Math.PI * 2
+    const cd = hash(seed * 7 + i) * 0.5 + 0.1
+    const ccx = cx + Math.cos(ca) * rx * cd
+    const ccy = cy + Math.sin(ca) * ry * cd
+    const cr = 2 + hash(seed * 11 + i) * 3
+    // Crater shadow
+    ctx.fillStyle = rgbStr(
+      Math.round(br * 0.25), Math.round(bg * 0.25), Math.round(bb * 0.25),
+    )
+    ctx.beginPath()
+    ctx.arc(ccx, ccy, cr, 0, Math.PI * 2)
+    ctx.fill()
+    // Crater rim highlight (opposite side from light)
+    ctx.strokeStyle = rgbStr(
+      Math.min(255, br + 20), Math.min(255, bg + 20), Math.min(255, bb + 20),
+    )
+    ctx.lineWidth = 0.8
+    ctx.beginPath()
+    ctx.arc(ccx, ccy, cr, 2.5, 4.3)
+    ctx.stroke()
+  }
+
+  // Surface cracks (thin dark lines)
   ctx.strokeStyle = rgbStr(
     Math.round(br * 0.15), Math.round(bg * 0.15), Math.round(bb * 0.15),
   )
-  ctx.lineWidth = 1
-  ctx.beginPath()
-  ctx.moveTo(x, y + h * 0.75)
-  ctx.lineTo(x + w, y + h * 0.4)
-  ctx.stroke()
+  ctx.lineWidth = 0.8
+  for (let i = 0; i < 2; i++) {
+    const ax = hash(seed * 13 + i) * Math.PI * 2
+    const ax2 = ax + (hash(seed * 17 + i) - 0.5) * 1.5
+    const rStart = 0.1 + hash(seed * 19 + i) * 0.3
+    const rEnd = 0.5 + hash(seed * 23 + i) * 0.4
+    ctx.beginPath()
+    ctx.moveTo(cx + Math.cos(ax) * rx * rStart, cy + Math.sin(ax) * ry * rStart)
+    ctx.lineTo(cx + Math.cos(ax2) * rx * rEnd, cy + Math.sin(ax2) * ry * rEnd)
+    ctx.stroke()
+  }
 
-  // 5) Inner panel border (inset, creates "plate on plate" feel)
-  ctx.strokeStyle = 'rgba(255,255,255,0.1)'
-  ctx.lineWidth = 1
-  const inset = 3
-  ctx.beginPath()
-  ctx.moveTo(x + chamfer, y + inset)
-  ctx.lineTo(x + w - chamfer, y + inset)
-  ctx.stroke()
+  ctx.restore()
 
-  // 6) Corner accent marks (4 small brackets)
-  ctx.strokeStyle = 'rgba(255,255,255,0.3)'
-  ctx.lineWidth = 1
-  const cLen = 3
-  // Top-left
-  ctx.beginPath()
-  ctx.moveTo(x + chamfer + 1, y + cLen + 1)
-  ctx.lineTo(x + chamfer + 1, y + 1)
-  ctx.lineTo(x + chamfer + 1 + cLen, y + 1)
-  ctx.stroke()
-  // Top-right
-  ctx.beginPath()
-  ctx.moveTo(x + w - chamfer - 1 - cLen, y + 1)
-  ctx.lineTo(x + w - chamfer - 1, y + 1)
-  ctx.lineTo(x + w - chamfer - 1, y + cLen + 1)
-  ctx.stroke()
-
-  // 7) Top chamfer rim light (bright)
-  ctx.strokeStyle = 'rgba(255,255,255,0.4)'
+  // 4) Rim highlight on lit edges (vertices facing top-left)
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)'
   ctx.lineWidth = 1.2
-  ctx.beginPath()
-  ctx.moveTo(x + chamfer, y + 0.5)
-  ctx.lineTo(x + w - chamfer, y + 0.5)
-  ctx.stroke()
-  // Top-left chamfer edge
-  ctx.strokeStyle = 'rgba(255,255,255,0.25)'
-  ctx.beginPath()
-  ctx.moveTo(x + 0.5, y + chamfer)
-  ctx.lineTo(x + chamfer, y + 0.5)
-  ctx.stroke()
-  // Top-right chamfer edge
-  ctx.beginPath()
-  ctx.moveTo(x + w - chamfer, y + 0.5)
-  ctx.lineTo(x + w - 0.5, y + chamfer)
-  ctx.stroke()
+  for (let i = 0; i < vertices.length; i++) {
+    const [vx, vy] = vertices[i]
+    const [nvx, nvy] = vertices[(i + 1) % vertices.length]
+    // Only draw if edge is on the top-left side
+    const midX = (vx + nvx) / 2
+    const midY = (vy + nvy) / 2
+    const dx = midX - cx, dy = midY - cy
+    // Top-left quadrant: dx < 0 or dy < 0 (roughly)
+    if (dx + dy < -2) {
+      ctx.beginPath()
+      ctx.moveTo(vx, vy)
+      ctx.lineTo(nvx, nvy)
+      ctx.stroke()
+    }
+  }
 
-  // 8) Crisp dark outline (full silhouette)
+  // 5) Crisp dark outline (full silhouette)
   ctx.strokeStyle = rgbStr(
-    Math.round(br * 0.1), Math.round(bg * 0.1), Math.round(bb * 0.1),
+    Math.round(br * 0.08), Math.round(bg * 0.08), Math.round(bb * 0.08),
   )
-  ctx.lineWidth = 1
-  panelPath(x + 0.5, y + 0.5, w - 1, h - 1)
+  ctx.lineWidth = 1.2
+  asteroidPath()
   ctx.stroke()
 }
 
