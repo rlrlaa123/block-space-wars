@@ -54,8 +54,8 @@ export function setupInput(
       return true // handled
     }
 
-    // Also skip menu button area (top-left HUD: 8,8,44,36)
-    if (pos.x >= 8 && pos.x <= 52 && pos.y >= 8 && pos.y <= 44) {
+    // Also skip menu button area (top-left HUD: 6,6,50,50)
+    if (pos.x >= 6 && pos.x <= 56 && pos.y >= 6 && pos.y <= 56) {
       recalled = true
       return true // treat as non-aim tap
     }

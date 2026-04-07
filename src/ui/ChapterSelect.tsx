@@ -6,10 +6,12 @@ interface Props {
   unlockedStage: number
   onSelect: (chapter: number, stage: number) => void
   onBack: () => void
+  onReset: () => void
 }
 
-export function ChapterSelect({ unlockedChapter, unlockedStage, onSelect, onBack }: Props) {
+export function ChapterSelect({ unlockedChapter, unlockedStage, onSelect, onBack, onReset }: Props) {
   const [selectedChapter, setSelectedChapter] = useState(unlockedChapter)
+  const [showResetConfirm, setShowResetConfirm] = useState(false)
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
@@ -93,14 +95,17 @@ export function ChapterSelect({ unlockedChapter, unlockedStage, onSelect, onBack
       }}>
         {/* Back button (top-left) */}
         <button onClick={onBack} style={{
-          position: 'absolute', top: 16, left: 16,
-          padding: '8px 16px', fontSize: 13,
-          background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)',
-          border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: 50, cursor: 'pointer', fontFamily: 'sans-serif',
-          zIndex: 2, minHeight: 36, minWidth: 44,
+          position: 'absolute', top: 12, left: 12,
+          padding: 0, fontSize: 18,
+          background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.6)',
+          border: '1px solid rgba(255,255,255,0.12)',
+          borderRadius: 12, cursor: 'pointer',
+          zIndex: 10, width: 48, height: 48,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          WebkitTapHighlightColor: 'transparent',
+          touchAction: 'manipulation',
         }}>
-          ← 뒤로
+          ✕
         </button>
 
         {/* ── Chapter tabs (horizontal scroll) ── */}
@@ -278,7 +283,84 @@ export function ChapterSelect({ unlockedChapter, unlockedStage, onSelect, onBack
           {selectedChapter === unlockedChapter && `STAGE ${unlockedStage + 1} IN PROGRESS`}
           {selectedChapter > unlockedChapter && 'LOCKED'}
         </div>
+
+        {/* ── Reset (bottom, subtle) ── */}
+        <button
+          onClick={() => setShowResetConfirm(true)}
+          style={{
+            marginTop: 24, padding: '6px 16px', fontSize: 11,
+            background: 'transparent', color: 'rgba(255,255,255,0.18)',
+            border: 'none', cursor: 'pointer', fontFamily: 'monospace',
+            letterSpacing: 0.5,
+            animation: 'fadeIn 0.5s ease-out 0.6s both',
+          }}
+        >
+          게임 초기화
+        </button>
       </div>
+
+      {/* ── Reset confirm modal ── */}
+      {showResetConfirm && (
+        <div
+          onClick={() => setShowResetConfirm(false)}
+          style={{
+            position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+            background: 'rgba(0,0,0,0.7)', zIndex: 100,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: '#12122a',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 16, padding: '28px 24px',
+              maxWidth: 280, textAlign: 'center',
+            }}
+          >
+            <div style={{
+              fontSize: 16, fontWeight: 700, color: '#fff',
+              fontFamily: 'sans-serif', marginBottom: 8,
+            }}>
+              게임 초기화
+            </div>
+            <div style={{
+              fontSize: 13, color: 'rgba(255,255,255,0.5)',
+              fontFamily: 'sans-serif', lineHeight: 1.5, marginBottom: 20,
+            }}>
+              모든 진행 상황이 삭제됩니다.{'\n'}정말 처음부터 시작하시겠습니까?
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => setShowResetConfirm(false)}
+                style={{
+                  flex: 1, padding: '12px 0', fontSize: 14,
+                  fontFamily: 'sans-serif', fontWeight: 600,
+                  background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.6)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: 10, cursor: 'pointer',
+                  minHeight: 44,
+                }}
+              >
+                취소
+              </button>
+              <button
+                onClick={() => { setShowResetConfirm(false); onReset() }}
+                style={{
+                  flex: 1, padding: '12px 0', fontSize: 14,
+                  fontFamily: 'sans-serif', fontWeight: 600,
+                  background: 'rgba(231,76,60,0.2)', color: '#e74c3c',
+                  border: '1px solid rgba(231,76,60,0.3)',
+                  borderRadius: 10, cursor: 'pointer',
+                  minHeight: 44,
+                }}
+              >
+                초기화
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

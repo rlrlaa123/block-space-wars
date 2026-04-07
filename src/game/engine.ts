@@ -147,8 +147,8 @@ export function createEngine(
     const w = rect.width
     const h = rect.height
 
-    // Menu button (top-left, 8,8,36,28) — always available except during modals
-    if (x >= 8 && x <= 44 && y >= 8 && y <= 36 &&
+    // Menu/back button (top-left, 6,6,44,44) — always available except during modals
+    if (x >= 6 && x <= 50 && y >= 6 && y <= 50 &&
         state.phase !== 'game-over' && state.phase !== 'stage-clear') {
       e.preventDefault()
       callbacks.onMenu()

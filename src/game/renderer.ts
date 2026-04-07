@@ -503,25 +503,25 @@ function drawHUD(ctx: CanvasRenderingContext2D, state: GameState, layout: Layout
   ctx.lineTo(w, 67.5)
   ctx.stroke()
 
-  // Menu button (top-left)
-  ctx.fillStyle = 'rgba(255,255,255,0.08)'
+  // Menu/back button (top-left, 48x48 touch target)
+  ctx.fillStyle = 'rgba(255,255,255,0.06)'
   ctx.beginPath()
-  ctx.roundRect(8, 8, 36, 28, 6)
+  ctx.roundRect(6, 6, 44, 44, 10)
   ctx.fill()
-  ctx.strokeStyle = 'rgba(255,255,255,0.15)'
-  ctx.lineWidth = 0.5
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)'
+  ctx.lineWidth = 1
   ctx.beginPath()
-  ctx.roundRect(8, 8, 36, 28, 6)
+  ctx.roundRect(6, 6, 44, 44, 10)
   ctx.stroke()
-  // Hamburger lines
+  // ✕ icon
   ctx.strokeStyle = 'rgba(255,255,255,0.6)'
-  ctx.lineWidth = 1.5
-  for (const dy of [-5, 0, 5]) {
-    ctx.beginPath()
-    ctx.moveTo(16, 22 + dy)
-    ctx.lineTo(36, 22 + dy)
-    ctx.stroke()
-  }
+  ctx.lineWidth = 2
+  ctx.lineCap = 'round'
+  ctx.beginPath()
+  ctx.moveTo(20, 20); ctx.lineTo(36, 36)
+  ctx.moveTo(36, 20); ctx.lineTo(20, 36)
+  ctx.stroke()
+  ctx.lineCap = 'butt'
 
   // Chapter + Stage label (centered)
   ctx.fillStyle = '#ffffff'

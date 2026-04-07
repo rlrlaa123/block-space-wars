@@ -5,11 +5,10 @@ import { drawSpaceTurtle } from './spaceTurtle'
 interface Props {
   onStart: () => void
   onChapterSelect: () => void
-  onReset: () => void
   hasProgress: boolean
 }
 
-export function TitleScreen({ onStart, onChapterSelect, onReset, hasProgress }: Props) {
+export function TitleScreen({ onStart, onChapterSelect, hasProgress }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
@@ -218,31 +217,6 @@ export function TitleScreen({ onStart, onChapterSelect, onReset, hasProgress }: 
         </button>
       )}
 
-      {/* Reset button */}
-      {hasProgress && (
-        <button
-          onClick={onReset}
-          style={{
-            position: 'absolute',
-            bottom: '6%',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            padding: '8px 24px',
-            fontSize: 12,
-            fontFamily: 'sans-serif',
-            background: 'transparent',
-            color: 'rgba(255,255,255,0.25)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 50,
-            cursor: 'pointer',
-            minHeight: 36,
-            letterSpacing: 0.5,
-            animation: 'btnFadeIn 1s ease-out',
-          }}
-        >
-          처음부터 시작
-        </button>
-      )}
     </div>
   )
 }
