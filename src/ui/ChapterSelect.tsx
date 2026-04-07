@@ -94,19 +94,29 @@ export function ChapterSelect({ unlockedChapter, unlockedStage, onSelect, onBack
         padding: '0 20px', boxSizing: 'border-box',
       }}>
         {/* Back button (top-left) */}
-        <button onClick={onBack} style={{
-          position: 'absolute', top: 12, left: 12,
-          padding: 0, fontSize: 18,
-          background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.6)',
-          border: '1px solid rgba(255,255,255,0.12)',
-          borderRadius: 12, cursor: 'pointer',
-          zIndex: 10, width: 48, height: 48,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          WebkitTapHighlightColor: 'transparent',
-          touchAction: 'manipulation',
-        }}>
-          ✕
-        </button>
+        <div
+          onClick={onBack}
+          style={{
+            position: 'absolute', top: 10, left: 10,
+            width: 44, height: 44, borderRadius: 22,
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', zIndex: 10,
+            WebkitTapHighlightColor: 'transparent',
+            touchAction: 'manipulation',
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <polyline
+              points="11,3 5,9 11,15"
+              stroke="rgba(255,255,255,0.55)"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
 
         {/* ── Chapter tabs (horizontal scroll) ── */}
         <div style={{

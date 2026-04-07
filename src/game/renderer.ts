@@ -503,25 +503,30 @@ function drawHUD(ctx: CanvasRenderingContext2D, state: GameState, layout: Layout
   ctx.lineTo(w, 67.5)
   ctx.stroke()
 
-  // Menu/back button (top-left, 48x48 touch target)
-  ctx.fillStyle = 'rgba(255,255,255,0.06)'
+  // Back button (top-left, minimal chevron style)
+  const btnCx = 28, btnCy = 28
+  // Subtle circular bg
+  ctx.fillStyle = 'rgba(255,255,255,0.04)'
   ctx.beginPath()
-  ctx.roundRect(6, 6, 44, 44, 10)
+  ctx.arc(btnCx, btnCy, 18, 0, Math.PI * 2)
   ctx.fill()
-  ctx.strokeStyle = 'rgba(255,255,255,0.12)'
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)'
   ctx.lineWidth = 1
   ctx.beginPath()
-  ctx.roundRect(6, 6, 44, 44, 10)
+  ctx.arc(btnCx, btnCy, 18, 0, Math.PI * 2)
   ctx.stroke()
-  // ✕ icon
-  ctx.strokeStyle = 'rgba(255,255,255,0.6)'
+  // Chevron arrow ‹
+  ctx.strokeStyle = 'rgba(255,255,255,0.55)'
   ctx.lineWidth = 2
   ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
   ctx.beginPath()
-  ctx.moveTo(20, 20); ctx.lineTo(36, 36)
-  ctx.moveTo(36, 20); ctx.lineTo(20, 36)
+  ctx.moveTo(btnCx + 3, btnCy - 7)
+  ctx.lineTo(btnCx - 5, btnCy)
+  ctx.lineTo(btnCx + 3, btnCy + 7)
   ctx.stroke()
   ctx.lineCap = 'butt'
+  ctx.lineJoin = 'miter'
 
   // Chapter + Stage label (centered)
   ctx.fillStyle = '#ffffff'
