@@ -148,6 +148,12 @@ export default function App() {
         hasProgress={progress.chapter > 0 || progress.stage > 0}
         onStart={() => startGame(progress.chapter, progress.stage, progress.ballCount)}
         onChapterSelect={() => setScreen('chapter-select')}
+        onReset={() => {
+          try { localStorage.removeItem(SAVE_KEY) } catch { /* ignore */ }
+          ballCountRef.current = undefined
+          setProgress({ chapter: 0, stage: 0, ballCount: 3 })
+          startGame(0, 0)
+        }}
       />
     )
   }
